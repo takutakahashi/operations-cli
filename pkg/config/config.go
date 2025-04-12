@@ -26,7 +26,8 @@ type Action struct {
 // Tool represents a tool configuration
 type Tool struct {
 	Name     string     `yaml:"name"`
-	Command  []string   `yaml:"command"`
+	Command  []string   `yaml:"command,omitempty"`
+	Script   string     `yaml:"script,omitempty"`
 	Params   Parameters `yaml:"params"`
 	Subtools []Subtool  `yaml:"subtools"`
 }
@@ -34,7 +35,8 @@ type Tool struct {
 // Subtool represents a subtool configuration
 type Subtool struct {
 	Name        string     `yaml:"name"`
-	Args        []string   `yaml:"args"`
+	Args        []string   `yaml:"args,omitempty"`
+	Script      string     `yaml:"script,omitempty"`
 	Params      Parameters `yaml:"params"`
 	DangerLevel string     `yaml:"danger_level"`
 	Subtools    []Subtool  `yaml:"subtools"`
@@ -135,8 +137,15 @@ func (c *Config) Validate() error {
 		if tool.Name == "" {
 			return fmt.Errorf("tool missing name")
 		}
-		if len(tool.Command) == 0 {
-			return fmt.Errorf("tool %s missing command", tool.Name)
+		
+		// 少なくとも Command または Script のどちらかが指定されている必要がある
+		if len(tool.Command) == 0 && tool.Script == "" {
+			return fmt.Errorf("tool %s missing both command and script", tool.Name)
+		}
+		
+		// Command と Script は排他的
+		if len(tool.Command) > 0 && tool.Script != "" {
+			return fmt.Errorf("tool %s has both command and script, only one should be specified", tool.Name)
 		}
 
 		// Validate tool parameters
@@ -167,6 +176,11 @@ func validateSubtool(subtool Subtool, parentName string) error {
 	}
 
 	fullName := parentName + "_" + subtool.Name
+	
+	// Args と Script は排他的
+	if len(subtool.Args) > 0 && subtool.Script != "" {
+		return fmt.Errorf("subtool %s has both args and script, only one should be specified", fullName)
+	}
 
 	// Validate subtool parameters
 	for name, param := range subtool.Params {
