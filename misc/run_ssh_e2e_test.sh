@@ -24,7 +24,7 @@ echo "SSH connection: ${SSH_USER}@${SSH_HOST}:${SSH_PORT}"
 
 # Test 1: Echo hello via SSH
 echo -e "\n${GREEN}Test 1: Echo hello command via SSH${NC}"
-${OPERATIONS_BIN} --config "${CONFIG_FILE}" --remote --host ${SSH_HOST} --port ${SSH_PORT} --user ${SSH_USER} --password ${SSH_PASSWORD} echo_hello --message "SSH e2e test"
+${OPERATIONS_BIN} --config "${CONFIG_FILE}" --remote --host ${SSH_HOST} --port ${SSH_PORT} --user ${SSH_USER} --password ${SSH_PASSWORD} echo hello --message "SSH e2e test"
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 1 passed${NC}"
 else
@@ -34,7 +34,7 @@ fi
 
 # Test 2: Sleep short via SSH (low danger level)
 echo -e "\n${GREEN}Test 2: Sleep short command via SSH${NC}"
-${OPERATIONS_BIN} --config "${CONFIG_FILE}" --remote --host ${SSH_HOST} --port ${SSH_PORT} --user ${SSH_USER} --password ${SSH_PASSWORD} sleep_short
+${OPERATIONS_BIN} --config "${CONFIG_FILE}" --remote --host ${SSH_HOST} --port ${SSH_PORT} --user ${SSH_USER} --password ${SSH_PASSWORD} sleep short
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 2 passed${NC}"
 else
