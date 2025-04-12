@@ -10,6 +10,7 @@ A CLI tool for executing operations defined in a YAML configuration file.
 - Danger level management for sensitive operations
 - Configurable action types (confirm, timeout, force)
 - Remote execution via SSH
+- Shell script execution with template variable support
 
 ## Installation
 
@@ -52,6 +53,9 @@ operations kubectl_describe_pod --namespace my-namespace --pod my-pod
 # Running a dangerous operation (will prompt for confirmation)
 operations kubectl_delete_pod --namespace my-namespace --pod my-pod
 
+# Running a shell script tool with parameters
+operations script-example --param1 "Hello World"
+
 # Running commands on a remote host via SSH
 operations --remote --host example.com --user admin kubectl_get_pod --namespace my-namespace
 
@@ -89,6 +93,56 @@ ssh:
 ## Configuration Format
 
 See `docs/spec.md` for detailed configuration format documentation.
+
+### Tool Configuration
+
+Tools can be configured in two ways: using commands or using shell scripts.
+
+#### Command-based Tools
+
+```yaml
+tools:
+  - name: kubectl
+    command:
+      - kubectl
+    params:
+      namespace:
+        description: The namespace to run the command in
+        type: string
+        required: true
+    subtools:
+      - name: get pod
+        args: ["get", "pod", "-o", "json", "-n", "{{.namespace}}"]
+      # More subtools...
+```
+
+#### Script-based Tools
+
+```yaml
+tools:
+  - name: script-example
+    script: |
+      #!/bin/bash
+      echo "Running a shell script with parameters"
+      echo "Parameter value: {{.param1}}"
+      # Any bash commands can be used
+      ls -la
+      date
+    params:
+      param1:
+        description: A parameter for the script
+        type: string
+        required: true
+    subtools:
+      - name: complex
+        script: |
+          #!/bin/bash
+          # More complex script operation
+          echo "Complex operation with {{.param1}}"
+          # More bash commands...
+```
+
+Template variables defined in `params` can be used in both command arguments and shell scripts.
 
 ## Development
 
