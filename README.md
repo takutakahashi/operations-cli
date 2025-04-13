@@ -61,6 +61,31 @@ operations --remote --host example.com --user admin kubectl_get_pod --namespace 
 
 # Using a specific SSH key
 operations --remote --host example.com --user admin --key ~/.ssh/custom_key kubectl_get_pod --namespace my-namespace
+
+# Upgrading to the latest version
+operations upgrade
+
+# Upgrading to a specific version
+operations upgrade --version v1.0.0
+
+# List available versions without upgrading
+operations upgrade --dry-run
+
+# Upgrade without confirmation prompt
+operations upgrade --force
+```
+
+### Upgrade Options
+
+```bash
+operations upgrade [flags]
+
+Flags:
+  --dry-run        Only show available versions without upgrading
+-f, --force        Skip confirmation prompt
+-h, --help         Help for upgrade
+-o, --output path  Path where to install the binary (default is current binary location)
+-v, --version ver  Version to upgrade to (default is latest version)
 ```
 
 ### Remote Execution Options
