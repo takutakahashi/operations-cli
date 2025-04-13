@@ -14,11 +14,28 @@ A CLI tool for executing operations defined in a YAML configuration file.
 
 ## Installation
 
-### Prerequisites
+### Quick Install (Recommended)
 
-- Go 1.24 or later
+Install the latest version with a single command:
+
+```bash
+# Install latest version
+curl -fsSL https://takutakahashi.github.io/operation-mcp/install.sh | sh
+```
+
+Install a specific version:
+
+```bash
+# Install specific version
+curl -fsSL https://takutakahashi.github.io/operation-mcp/install.sh | sh -s -- -v 1.0.0
+```
+
+For more installation options, see [detailed installation instructions](https://takutakahashi.github.io/operation-mcp/installation).
 
 ### Building from source
+
+Prerequisites:
+- Go 1.24 or later
 
 ```bash
 # Clone the repository
