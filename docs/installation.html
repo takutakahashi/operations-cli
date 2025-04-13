@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operations CLI - Detailed Installation Guide</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        code {
+            background-color: #f6f8fa;
+            border-radius: 3px;
+            font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+            padding: 0.2em 0.4em;
+            font-size: 85%;
+        }
+        pre {
+            background-color: #f6f8fa;
+            border-radius: 3px;
+            padding: 16px;
+            overflow: auto;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        h1, h2, h3 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+        h1 {
+            padding-bottom: 0.3em;
+            font-size: 2em;
+            border-bottom: 1px solid #eaecef;
+        }
+        h2 {
+            padding-bottom: 0.3em;
+            font-size: 1.5em;
+            border-bottom: 1px solid #eaecef;
+        }
+        a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        table th, table td {
+            border: 1px solid #dfe2e5;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        table th {
+            background-color: #f6f8fa;
+        }
+        .back-link {
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← Back to home</a>
+    
+    <h1>インストール方法</h1>
+    
+    <p>Operations CLIには複数のインストール方法があります。</p>
+    
+    <h2>ワンライナーインストール（推奨）</h2>
+    
+    <p>最新バージョンを簡単にインストールするには、以下のコマンドを実行してください：</p>
+    
+    <pre><code>curl -fsSL https://takutakahashi.github.io/operation-mcp/install.sh | sh</code></pre>
+    
+    <p>特定のバージョンをインストールする場合は、以下のように<code>-v</code>オプションを使用します：</p>
+    
+    <pre><code>curl -fsSL https://takutakahashi.github.io/operation-mcp/install.sh | sh -s -- -v 1.0.0</code></pre>
+    
+    <p>カスタムディレクトリにインストールする場合は、<code>-d</code>オプションを使用します：</p>
+    
+    <pre><code>curl -fsSL https://takutakahashi.github.io/operation-mcp/install.sh | sh -s -- -d ~/bin</code></pre>
+    
+    <h3>インストールスクリプトのオプション</h3>
+    
+    <p>インストールスクリプトは以下のオプションをサポートしています：</p>
+    
+    <table>
+        <tr>
+            <th>オプション</th>
+            <th>説明</th>
+        </tr>
+        <tr>
+            <td><code>-v, --version VERSION</code></td>
+            <td>インストールするバージョンを指定します（デフォルト: 最新）</td>
+        </tr>
+        <tr>
+            <td><code>-d, --dir DIRECTORY</code></td>
+            <td>インストール先ディレクトリを指定します（デフォルト: /usr/local/bin）</td>
+        </tr>
+        <tr>
+            <td><code>-f, --force</code></td>
+            <td>確認プロンプトをスキップします</td>
+        </tr>
+        <tr>
+            <td><code>--dry-run</code></td>
+            <td>変更を加えずに何が行われるかを表示します</td>
+        </tr>
+        <tr>
+            <td><code>-h, --help</code></td>
+            <td>ヘルプメッセージを表示します</td>
+        </tr>
+    </table>
+    
+    <h2>ソースからのビルド</h2>
+    
+    <p>Goの開発環境がある場合は、リポジトリからソースコードをクローンしてビルドすることもできます：</p>
+    
+    <pre><code># リポジトリをクローン
+git clone https://github.com/takutakahashi/operation-mcp.git
+cd operation-mcp
+
+# バイナリをビルド
+make build
+
+# インストール（オプション）
+make install</code></pre>
+    
+    <h2>既存インストールのアップグレード</h2>
+    
+    <p>すでにインストールされているOperations CLIをアップグレードする場合は、<code>upgrade</code>コマンドを使用できます：</p>
+    
+    <pre><code># 最新バージョンにアップグレード
+operations upgrade
+
+# 特定のバージョンにアップグレード
+operations upgrade --version v1.0.0
+
+# 利用可能なバージョンを確認（アップグレードなし）
+operations upgrade --dry-run
+
+# 確認プロンプトなしでアップグレード
+operations upgrade --force</code></pre>
+    
+    <p>詳細なアップグレードオプションについては、<code>operations upgrade --help</code>を参照してください。</p>
+    
+    <h2>インストール後の確認</h2>
+    
+    <p>インストールが成功したかを確認するには、以下のコマンドを実行します：</p>
+    
+    <pre><code>operations --version</code></pre>
+    
+    <p>バージョン情報が表示されれば、インストールは正常に完了しています。</p>
+    
+    <hr>
+    
+    <p><small>© 2025 Operations CLI Project</small></p>
+</body>
+</html>

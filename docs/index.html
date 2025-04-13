@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operations CLI - Installation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        code {
+            background-color: #f6f8fa;
+            border-radius: 3px;
+            font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+            padding: 0.2em 0.4em;
+            font-size: 85%;
+        }
+        pre {
+            background-color: #f6f8fa;
+            border-radius: 3px;
+            padding: 16px;
+            overflow: auto;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        h1, h2, h3 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+        h1 {
+            padding-bottom: 0.3em;
+            font-size: 2em;
+            border-bottom: 1px solid #eaecef;
+        }
+        h2 {
+            padding-bottom: 0.3em;
+            font-size: 1.5em;
+            border-bottom: 1px solid #eaecef;
+        }
+        a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #2ea44f;
+            color: white;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-weight: 600;
+            text-align: center;
+            margin: 16px 0;
+        }
+        .cta-button:hover {
+            background-color: #2c974b;
+            text-decoration: none;
+        }
+        .installation-option {
+            margin-bottom: 32px;
+            padding: 16px;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Operations CLI Tool</h1>
+    
+    <p>A CLI tool for executing operations defined in a YAML configuration file.</p>
+    
+    <a href="https://github.com/takutakahashi/operation-mcp" class="cta-button">View on GitHub</a>
+    
+    <h2>Installation</h2>
+    
+    <div class="installation-option">
+        <h3>Option 1: Quick Install (Recommended)</h3>
+        <p>Install the latest version with a single command:</p>
+        <pre><code>curl -fsSL https://takutakahashi.github.io/operation-mcp/install.sh | sh</code></pre>
+        
+        <p>Install a specific version:</p>
+        <pre><code>curl -fsSL https://takutakahashi.github.io/operation-mcp/install.sh | sh -s -- -v 1.0.0</code></pre>
+    </div>
+    
+    <div class="installation-option">
+        <h3>Option 2: Building from source</h3>
+        <p>Prerequisites: Go 1.24 or later</p>
+        <pre><code># Clone the repository
+git clone https://github.com/takutakahashi/operation-mcp.git
+cd operation-mcp
+
+# Build the binary
+make build
+
+# Install the binary (optional)
+make install</code></pre>
+    </div>
+    
+    <h2>Documentation</h2>
+    
+    <ul>
+        <li><a href="installation.html">Detailed Installation Guide</a></li>
+        <li><a href="https://github.com/takutakahashi/operation-mcp/blob/main/README.md">README</a></li>
+        <li><a href="https://github.com/takutakahashi/operation-mcp/blob/main/docs/spec.md">Configuration Format Specification</a></li>
+    </ul>
+    
+    <h2>Direct Links</h2>
+    
+    <ul>
+        <li><a href="install.sh">Installation Script (install.sh)</a></li>
+    </ul>
+    
+    <hr>
+    
+    <p><small>© 2025 Operations CLI Project</small></p>
+</body>
+</html>
