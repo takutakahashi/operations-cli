@@ -5,7 +5,7 @@ set -e
 SCRIPT_VERSION="1.0.0"
 
 # Default values
-DEFAULT_INSTALL_DIR="/usr/local/bin"
+DEFAULT_INSTALL_DIR="${HOME}/.local/bin"
 OWNER="takutakahashi"
 REPO="operation-mcp"
 VERSION=""
@@ -24,7 +24,7 @@ USAGE:
 
 OPTIONS:
     -v, --version VERSION    Specify version to install (default: latest)
-    -d, --dir DIRECTORY      Specify installation directory (default: /usr/local/bin)
+    -d, --dir DIRECTORY      Specify installation directory (default: ${DEFAULT_INSTALL_DIR})
     -f, --force              Skip confirmation prompt
     --dry-run                Show what would be done without making changes
     -h, --help               Show this help message
