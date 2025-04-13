@@ -32,7 +32,7 @@ func TestFetchVersions(t *testing.T) {
 	// Override the GitHub API URL with our test server URL
 	oldHTTPGet := httpGet
 	defer func() { httpGet = oldHTTPGet }()
-	
+
 	httpGet = func(url string) (*http.Response, error) {
 		return http.Get(server.URL + "/repos/testowner/testrepo/releases")
 	}
@@ -102,7 +102,7 @@ func TestFetchVersionInfo(t *testing.T) {
 	// Override the GitHub API URL with our test server URL
 	oldHttpGet := httpGet
 	defer func() { httpGet = oldHttpGet }()
-	
+
 	httpGet = func(url string) (*http.Response, error) {
 		if url == "https://api.github.com/repos/testowner/testrepo/releases/latest" {
 			return http.Get(server.URL + "/repos/testowner/testrepo/releases/latest")
@@ -207,12 +207,12 @@ func TestFindMatchingAsset(t *testing.T) {
 			// In a real test, you would use reflection or other advanced techniques
 			// Here we're just pretending for the demonstration
 			if originalGOOS != tc.mockOS || originalGOARCH != tc.mockArch {
-				t.Skipf("Skipping test case that requires mocking runtime.GOOS=%s and runtime.GOARCH=%s", 
+				t.Skipf("Skipping test case that requires mocking runtime.GOOS=%s and runtime.GOARCH=%s",
 					tc.mockOS, tc.mockArch)
 			}
 
 			asset, err := FindMatchingAsset(release)
-			
+
 			if tc.expectError {
 				if err == nil {
 					t.Errorf("Expected error but got none")

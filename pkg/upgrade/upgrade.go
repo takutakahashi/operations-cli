@@ -189,14 +189,14 @@ func ExtractBinary(archivePath, outputDir string) (string, error) {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create output directory: %w", err)
 	}
-	
+
 	// Check archive type and extract accordingly
 	if strings.HasSuffix(archivePath, ".tar.gz") {
 		return extractTarGz(archivePath, outputDir)
 	} else if strings.HasSuffix(archivePath, ".zip") {
 		return extractZip(archivePath, outputDir)
 	}
-	
+
 	return "", fmt.Errorf("unsupported archive format: %s", archivePath)
 }
 
@@ -208,18 +208,18 @@ func extractTarGz(archivePath, outputDir string) (string, error) {
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("failed to extract tar.gz: %w", err)
 	}
-	
+
 	// Look for the operations binary in the extracted contents
 	binaryPath := filepath.Join(outputDir, "operations")
 	if _, err := os.Stat(binaryPath); err != nil {
 		return "", fmt.Errorf("binary not found after extraction: %w", err)
 	}
-	
+
 	// Make it executable
 	if err := os.Chmod(binaryPath, 0755); err != nil {
 		return "", fmt.Errorf("failed to make binary executable: %w", err)
 	}
-	
+
 	return binaryPath, nil
 }
 
@@ -231,18 +231,18 @@ func extractZip(archivePath, outputDir string) (string, error) {
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("failed to extract zip: %w", err)
 	}
-	
+
 	// Look for the operations binary in the extracted contents
 	binaryPath := filepath.Join(outputDir, "operations")
 	if _, err := os.Stat(binaryPath); err != nil {
 		return "", fmt.Errorf("binary not found after extraction: %w", err)
 	}
-	
+
 	// Make it executable
 	if err := os.Chmod(binaryPath, 0755); err != nil {
 		return "", fmt.Errorf("failed to make binary executable: %w", err)
 	}
-	
+
 	return binaryPath, nil
 }
 
@@ -253,14 +253,14 @@ func InstallBinary(binaryPath, destPath string) error {
 	if err := os.MkdirAll(destDir, 0755); err != nil {
 		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
-	
+
 	// Copy the binary to the destination
 	srcFile, err := os.Open(binaryPath)
 	if err != nil {
 		return fmt.Errorf("failed to open source binary: %w", err)
 	}
 	defer srcFile.Close()
-	
+
 	// If destination exists, check if we can write to it
 	if _, err := os.Stat(destPath); err == nil {
 		// Check if file is writable
@@ -268,17 +268,17 @@ func InstallBinary(binaryPath, destPath string) error {
 			return fmt.Errorf("cannot overwrite existing binary, permission denied: %w", err)
 		}
 	}
-	
+
 	destFile, err := os.OpenFile(destPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
 		return fmt.Errorf("failed to create destination file: %w", err)
 	}
 	defer destFile.Close()
-	
+
 	if _, err := io.Copy(destFile, srcFile); err != nil {
 		return fmt.Errorf("failed to copy binary: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -292,79 +292,79 @@ func Upgrade(owner, repo, version, outputPath string, dryRun bool, force bool) e
 		}
 		outputPath = exePath
 	}
-	
+
 	// If dry-run, just list available versions and exit
 	if dryRun {
 		versions, err := FetchVersions(owner, repo)
 		if err != nil {
 			return fmt.Errorf("failed to fetch available versions: %w", err)
 		}
-		
+
 		fmt.Println("Available versions:")
 		for _, v := range versions {
 			fmt.Println(v)
 		}
-		
+
 		fmt.Printf("\nLatest version: %s\n", versions[0])
 		fmt.Printf("Current requested version: %s\n", version)
-		
+
 		return nil
 	}
-	
+
 	// Fetch the release information
 	release, err := FetchVersionInfo(owner, repo, version)
 	if err != nil {
 		return fmt.Errorf("failed to fetch version information: %w", err)
 	}
-	
+
 	// Find the appropriate asset for the current platform
 	asset, err := FindMatchingAsset(release)
 	if err != nil {
 		return fmt.Errorf("failed to find appropriate binary: %w", err)
 	}
-	
+
 	// Confirm the upgrade
 	if !force {
 		fmt.Printf("Upgrading to version %s\n", release.TagName)
 		fmt.Printf("Binary: %s\n", asset.Name)
 		fmt.Printf("Destination: %s\n", outputPath)
 		fmt.Printf("Proceed? [y/N] ")
-		
+
 		var response string
 		fmt.Scanln(&response)
-		
+
 		if strings.ToLower(response) != "y" && strings.ToLower(response) != "yes" {
 			return fmt.Errorf("upgrade aborted by user")
 		}
 	}
-	
+
 	// Create a temporary directory for the download
 	tempDir, err := os.MkdirTemp("", "operations-upgrade-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temporary directory: %w", err)
 	}
 	defer os.RemoveAll(tempDir) // Clean up on exit
-	
+
 	// Download the asset
 	fmt.Printf("Downloading %s...\n", asset.Name)
 	archivePath, err := DownloadAsset(asset, tempDir)
 	if err != nil {
 		return fmt.Errorf("download failed: %w", err)
 	}
-	
+
 	// Extract the binary
 	fmt.Println("Extracting binary...")
 	binaryPath, err := ExtractBinary(archivePath, tempDir)
 	if err != nil {
 		return fmt.Errorf("extraction failed: %w", err)
 	}
-	
+
 	// Install the binary
 	fmt.Println("Installing binary...")
 	if err := InstallBinary(binaryPath, outputPath); err != nil {
 		return fmt.Errorf("installation failed: %w", err)
 	}
-	
+
 	fmt.Printf("Successfully upgraded to version %s\n", release.TagName)
 	return nil
 }

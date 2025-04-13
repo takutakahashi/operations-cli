@@ -19,6 +19,11 @@ var (
 	cfg        *config.Config
 	toolMgr    *tool.Manager
 
+	// バージョン情報（goreleaser によってビルド時に設定される）
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+
 	// SSH関連のフラグ
 	remoteMode    bool
 	sshHost       string
@@ -56,6 +61,11 @@ func main() {
 		Short: "Operations CLI tool",
 		Long:  "A CLI tool for executing operations defined in a configuration file",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			// バージョン表示の場合は設定ファイルの読み込みをスキップ
+			if cmd.Flag("version") != nil && cmd.Flag("version").Changed {
+				return nil
+			}
+
 			// If we already loaded the config, we can skip this
 			if cfg != nil {
 				return nil
@@ -88,6 +98,19 @@ func main() {
 	}
 
 	rootCmd.PersistentFlags().StringVar(&configPath, "config", configPath, "path to config file")
+
+	// バージョンフラグ追加
+	showVersion := false
+	rootCmd.PersistentFlags().BoolVarP(&showVersion, "version", "V", false, "Show version information")
+
+	// バージョン表示のRun関数を追加
+	rootCmd.Run = func(cmd *cobra.Command, args []string) {
+		if showVersion {
+			fmt.Printf("operations version %s (commit: %s, built on: %s)\n", version, commit, date)
+			return
+		}
+		cmd.Help()
+	}
 
 	// SSH関連のフラグを追加
 	rootCmd.PersistentFlags().BoolVar(&remoteMode, "remote", false, "Enable remote execution mode via SSH")

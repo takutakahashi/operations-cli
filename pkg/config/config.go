@@ -137,12 +137,12 @@ func (c *Config) Validate() error {
 		if tool.Name == "" {
 			return fmt.Errorf("tool missing name")
 		}
-		
+
 		// 少なくとも Command または Script のどちらかが指定されている必要がある
 		if len(tool.Command) == 0 && tool.Script == "" {
 			return fmt.Errorf("tool %s missing both command and script", tool.Name)
 		}
-		
+
 		// Command と Script は排他的
 		if len(tool.Command) > 0 && tool.Script != "" {
 			return fmt.Errorf("tool %s has both command and script, only one should be specified", tool.Name)
@@ -176,7 +176,7 @@ func validateSubtool(subtool Subtool, parentName string) error {
 	}
 
 	fullName := parentName + "_" + subtool.Name
-	
+
 	// Args と Script は排他的
 	if len(subtool.Args) > 0 && subtool.Script != "" {
 		return fmt.Errorf("subtool %s has both args and script, only one should be specified", fullName)
