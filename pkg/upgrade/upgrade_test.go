@@ -30,8 +30,8 @@ func TestFetchVersions(t *testing.T) {
 	defer server.Close()
 
 	// Override the GitHub API URL with our test server URL
-	oldHttpGet := httpGet
-	defer func() { httpGet = oldHttpGet }()
+	oldHTTPGet := httpGet
+	defer func() { httpGet = oldHTTPGet }()
 	
 	httpGet = func(url string) (*http.Response, error) {
 		return http.Get(server.URL + "/repos/testowner/testrepo/releases")
