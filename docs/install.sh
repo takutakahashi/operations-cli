@@ -136,10 +136,17 @@ fetch_latest_release() {
         exit 1
     fi
 
-    # Extract version
-    TAG_NAME=$(echo "$RELEASE_INFO" | grep -o '"tag_name":"[^"]*' | sed 's/"tag_name":"//g')
-    if [ -z "$TAG_NAME" ]; then
+    # Check if jq is installed
+    if ! command -v jq >/dev/null 2>&1; then
+        echo "Error: jq is required but not installed. Please install jq first."
+        exit 1
+    fi
+
+    # Extract version using jq
+    TAG_NAME=$(echo "$RELEASE_INFO" | jq -r .tag_name)
+    if [ "$TAG_NAME" = "null" ] || [ -z "$TAG_NAME" ]; then
         echo "Failed to extract tag name from release information"
+        echo "Release info: $RELEASE_INFO"
         exit 1
     fi
 
@@ -148,12 +155,16 @@ fetch_latest_release() {
 
 # Find the correct asset URL for download
 find_asset_url() {
-    # Example asset name: operations_v0.1.0_linux_x86_64.tar.gz
-    ASSET_PATTERN="$BINARY_NAME\_.*\_$OS\_$ARCH_NAME\.tar\.gz"
-    ASSET_URL=$(echo "$RELEASE_INFO" | grep -o "\"browser_download_url\":\"[^\"]*$ASSET_PATTERN\"" | sed 's/"browser_download_url":"//g' | sed 's/"//g')
-
+    # Example asset name: operation-mcp_0.3.0_darwin_aarch64.tar.gz
+    ASSET_PATTERN="operation-mcp_.*_$OS_$ARCH_NAME.tar.gz"
+    
+    # Use jq to find the matching asset URL
+    ASSET_URL=$(echo "$RELEASE_INFO" | jq -r ".assets[] | select(.name | test(\"$ASSET_PATTERN\")) | .browser_download_url" | head -n 1)
+    
     if [ -z "$ASSET_URL" ]; then
         echo "No matching asset found for $OS $ARCH_NAME"
+        echo "Available assets:"
+        echo "$RELEASE_INFO" | jq -r ".assets[].name"
         exit 1
     fi
 
