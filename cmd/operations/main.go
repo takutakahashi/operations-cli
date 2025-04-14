@@ -47,13 +47,11 @@ func main() {
 		}
 	}
 
-	// Try to load the config early
+	// Load the config (will use default locations if configPath is empty)
 	var err error
-	if configPath != "" {
-		cfg, err = config.LoadConfig(configPath)
-		if err != nil {
-			fmt.Printf("Warning: Failed to load config from %s: %v\n", configPath, err)
-		}
+	cfg, err = config.LoadConfig(configPath)
+	if err != nil {
+		fmt.Printf("Warning: Failed to load config: %v\n", err)
 	}
 
 	rootCmd := &cobra.Command{
@@ -66,9 +64,15 @@ func main() {
 				return nil
 			}
 
-			// If we already loaded the config, we can skip this
+			// If we already loaded the config and it's valid, we can skip this
 			if cfg != nil {
 				return nil
+			}
+
+			// Try to load the config again (in case it was specified via flag)
+			configFlag := cmd.Flag("config")
+			if configFlag != nil && configFlag.Changed {
+				configPath = configFlag.Value.String()
 			}
 
 			var err error
@@ -121,28 +125,6 @@ func main() {
 	rootCmd.PersistentFlags().IntVar(&sshPort, "port", 22, "SSH port")
 	rootCmd.PersistentFlags().DurationVar(&sshTimeout, "timeout", 10*time.Second, "SSH connection timeout")
 	rootCmd.PersistentFlags().BoolVar(&sshVerifyHost, "verify-host", true, "Verify host key")
-
-	// Add the exec command
-	execCmd := &cobra.Command{
-		Use:   "exec [tool_subtool] [args...]",
-		Short: "Execute a specific subtool with parameters",
-		Long:  `Execute a tool's subtool with parameters. The tool_subtool must be specified in the format "tool_subtool", e.g. "kubectl_get_pod".`,
-		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			toolPath := args[0]
-			toolArgs := []string{}
-			if len(args) > 1 {
-				toolArgs = args[1:]
-			}
-
-			if err := toolMgr.ExecuteRawTool(toolPath, toolArgs); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
-		},
-	}
-
-	rootCmd.AddCommand(execCmd)
 
 	// Add the list command
 	listCmd := &cobra.Command{
@@ -213,7 +195,7 @@ func main() {
 
 	rootCmd.AddCommand(upgradeCmd)
 
-	// If we have a config, add commands for each tool
+	// If we have a config, add tool commands
 	if cfg != nil {
 		// Create and configure the tool manager
 		toolMgr = tool.NewManager(cfg)
@@ -227,15 +209,104 @@ func main() {
 			toolMgr.WithExecutor(exec)
 		}
 
+		// Add standalone commands for each tool
 		for _, tool := range cfg.Tools {
+			// Create and add the tool command
 			toolCmd := createToolCommand(tool)
 			rootCmd.AddCommand(toolCmd)
+			
+			// Now add all subtools as direct commands to the root
+			addSubtoolsToRoot(rootCmd, tool.Name, tool.Params, tool.Subtools)
 		}
+	} else {
+		fmt.Fprintf(os.Stderr, "No configuration loaded. Only built-in commands are available.\n")
 	}
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+// addSubtoolsToRoot recursively adds subtools as direct commands to the root command
+func addSubtoolsToRoot(rootCmd *cobra.Command, parentName string, parentParams config.Parameters, subtools []config.Subtool) {
+	for _, subtool := range subtools {
+		// Create the command name in tool_subtool format
+		name := strings.ReplaceAll(subtool.Name, " ", "_")
+		fullName := parentName + "_" + name
+		
+		// Create a new command with the tool_subtool name
+		cmd := &cobra.Command{
+			Use:   fullName,
+			Short: fmt.Sprintf("Execute %s operation", fullName),
+			Run: func(fullToolPath string) func(*cobra.Command, []string) {
+				return func(cmd *cobra.Command, args []string) {
+					// Execute the tool
+					paramValues := getParamValues(cmd, nil) // Get all flags
+					if err := toolMgr.ExecuteTool(fullToolPath, paramValues); err != nil {
+						fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+						os.Exit(1)
+					}
+				}
+			}(fullName), // Capture fullName in the closure
+		}
+		
+		// Add parent params
+		for name, param := range parentParams {
+			addParamFlag(cmd, name, param)
+		}
+		
+		// Add subtool params
+		for name, param := range subtool.Params {
+			addParamFlag(cmd, name, param)
+		}
+		
+		// Add the command to root
+		rootCmd.AddCommand(cmd)
+		
+		// Recursively add nested subtools
+		if len(subtool.Subtools) > 0 {
+			// Create combined parameters
+			combinedParams := make(config.Parameters)
+			for name, param := range parentParams {
+				combinedParams[name] = param
+			}
+			for name, param := range subtool.Params {
+				combinedParams[name] = param
+			}
+			
+			addSubtoolsToRoot(rootCmd, fullName, combinedParams, subtool.Subtools)
+		}
+	}
+}
+
+// addParamFlag adds a parameter flag to a command
+func addParamFlag(cmd *cobra.Command, name string, param config.Parameter) {
+	// Skip adding the flag if it already exists
+	exists := false
+	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
+		if flag.Name == name {
+			exists = true
+		}
+	})
+	if exists {
+		return
+	}
+
+	switch param.Type {
+	case "string":
+		cmd.Flags().String(name, "", param.Description)
+	case "int", "number":
+		cmd.Flags().Int(name, 0, param.Description)
+	case "bool", "boolean":
+		cmd.Flags().Bool(name, false, param.Description)
+	default:
+		// Default to string for unknown types
+		cmd.Flags().String(name, "", param.Description)
+	}
+
+	if param.Required {
+		cmd.MarkFlagRequired(name)
 	}
 }
 
