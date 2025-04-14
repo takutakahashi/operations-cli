@@ -47,13 +47,11 @@ func main() {
 		}
 	}
 
-	// Try to load the config early
+	// Load the config (will use default locations if configPath is empty)
 	var err error
-	if configPath != "" {
-		cfg, err = config.LoadConfig(configPath)
-		if err != nil {
-			fmt.Printf("Warning: Failed to load config from %s: %v\n", configPath, err)
-		}
+	cfg, err = config.LoadConfig(configPath)
+	if err != nil {
+		fmt.Printf("Warning: Failed to load config: %v\n", err)
 	}
 
 	rootCmd := &cobra.Command{
@@ -66,9 +64,15 @@ func main() {
 				return nil
 			}
 
-			// If we already loaded the config, we can skip this
+			// If we already loaded the config and it's valid, we can skip this
 			if cfg != nil {
 				return nil
+			}
+
+			// Try to load the config again (in case it was specified via flag)
+			configFlag := cmd.Flag("config")
+			if configFlag != nil && configFlag.Changed {
+				configPath = configFlag.Value.String()
 			}
 
 			var err error
@@ -121,28 +125,6 @@ func main() {
 	rootCmd.PersistentFlags().IntVar(&sshPort, "port", 22, "SSH port")
 	rootCmd.PersistentFlags().DurationVar(&sshTimeout, "timeout", 10*time.Second, "SSH connection timeout")
 	rootCmd.PersistentFlags().BoolVar(&sshVerifyHost, "verify-host", true, "Verify host key")
-
-	// Add the exec command
-	execCmd := &cobra.Command{
-		Use:   "exec [tool_subtool] [args...]",
-		Short: "Execute a specific subtool with parameters",
-		Long:  `Execute a tool's subtool with parameters. The tool_subtool must be specified in the format "tool_subtool", e.g. "kubectl_get_pod".`,
-		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			toolPath := args[0]
-			toolArgs := []string{}
-			if len(args) > 1 {
-				toolArgs = args[1:]
-			}
-
-			if err := toolMgr.ExecuteRawTool(toolPath, toolArgs); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
-		},
-	}
-
-	rootCmd.AddCommand(execCmd)
 
 	// Add the list command
 	listCmd := &cobra.Command{
@@ -236,6 +218,8 @@ func main() {
 			// Now add all subtools as direct commands to the root
 			addSubtoolsToRoot(rootCmd, tool.Name, tool.Params, tool.Subtools)
 		}
+	} else {
+		fmt.Fprintf(os.Stderr, "No configuration loaded. Only built-in commands are available.\n")
 	}
 
 	if err := rootCmd.Execute(); err != nil {
@@ -255,14 +239,16 @@ func addSubtoolsToRoot(rootCmd *cobra.Command, parentName string, parentParams c
 		cmd := &cobra.Command{
 			Use:   fullName,
 			Short: fmt.Sprintf("Execute %s operation", fullName),
-			Run: func(cmd *cobra.Command, args []string) {
-				// Execute the tool
-				paramValues := getParamValues(cmd, nil) // Get all flags
-				if err := toolMgr.ExecuteTool(fullName, paramValues); err != nil {
-					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-					os.Exit(1)
+			Run: func(fullToolPath string) func(*cobra.Command, []string) {
+				return func(cmd *cobra.Command, args []string) {
+					// Execute the tool
+					paramValues := getParamValues(cmd, nil) // Get all flags
+					if err := toolMgr.ExecuteTool(fullToolPath, paramValues); err != nil {
+						fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+						os.Exit(1)
+					}
 				}
-			},
+			}(fullName), // Capture fullName in the closure
 		}
 		
 		// Add parent params
