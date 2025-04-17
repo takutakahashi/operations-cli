@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.6.1](https://github.com/takutakahashi/operation-mcp/compare/v0.6.0...v0.6.1) - 2025-04-17
+- Fix exec flag by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/32
+- Fix: Change list output format to tool_subtool format (#33) by @kommon-ai in https://github.com/takutakahashi/operation-mcp/pull/35
+
 ## [v0.5.2](https://github.com/takutakahashi/operation-mcp/compare/v0.5.1...v0.5.2) - 2025-04-17
 
 ## [v0.5.1](https://github.com/takutakahashi/operation-mcp/compare/v0.5.0...v0.5.1) - 2025-04-17
