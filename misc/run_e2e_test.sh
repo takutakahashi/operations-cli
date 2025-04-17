@@ -26,7 +26,7 @@ fi
 
 # Test 2: Echo hello command
 echo -e "\n${GREEN}Test 2: Echo hello command${NC}"
-${OPERATIONS_BIN} exec echo hello --message "e2e test"
+${OPERATIONS_BIN} exec echo_hello --message "e2e test"
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 2 passed${NC}"
 else
@@ -36,7 +36,7 @@ fi
 
 # Test 3: Echo goodbye command
 echo -e "\n${GREEN}Test 3: Echo goodbye command${NC}"
-${OPERATIONS_BIN} exec echo goodbye --message "e2e test"
+${OPERATIONS_BIN} exec echo_goodbye --message "e2e test"
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 3 passed${NC}"
 else
