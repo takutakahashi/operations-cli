@@ -83,6 +83,9 @@ func newRootCmd() *cobra.Command {
 	// Add config file flag
 	cmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Path to config file")
 
+	// Add set flag
+	cmd.PersistentFlags().StringArray("set", []string{}, "Set parameter values in the format key=value")
+
 	// Add SSH flags
 	cmd.PersistentFlags().Bool("remote", false, "Enable remote execution via SSH")
 	cmd.PersistentFlags().String("host", "", "SSH remote host (required in remote mode)")
