@@ -9,7 +9,7 @@ NC='\033[0m' # No Color
 # Build the operations binary
 cd "$(dirname "$0")/.."
 go build -o build/operations .
-OPERATIONS_BIN="$(pwd)/build/operations"
+OPERATIONS_BIN="$(pwd)/build/operations -c misc/e2e.yaml"
 
 echo "Starting e2e tests..."
 echo "Using operations binary: ${OPERATIONS_BIN}"
@@ -46,7 +46,7 @@ fi
 
 # Test 4: Sleep command (low danger level)
 echo -e "\n${GREEN}Test 4: Sleep command (low danger level)${NC}"
-${OPERATIONS_BIN} exec sleep --seconds 1
+${OPERATIONS_BIN} exec sleep_short
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 4 passed${NC}"
 else
@@ -56,7 +56,7 @@ fi
 
 # Test 5: Sleep command (high danger level)
 echo -e "\n${GREEN}Test 5: Sleep command (high danger level)${NC}"
-echo "y" | ${OPERATIONS_BIN} exec sleep --seconds 5
+echo "y" | ${OPERATIONS_BIN} exec sleep_medium
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 5 passed${NC}"
 else
