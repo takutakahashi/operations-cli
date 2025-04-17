@@ -117,18 +117,20 @@ func LoadConfig(configPath string) (*Config, error) {
 // Validate validates the configuration
 func (c *Config) Validate() error {
 	// Validate actions
-	for _, action := range c.Actions {
-		if action.DangerLevel == "" {
-			return fmt.Errorf("action missing danger_level")
-		}
-		if action.Type == "" {
-			return fmt.Errorf("action missing type")
-		}
-		if action.Type != "confirm" && action.Type != "timeout" && action.Type != "force" {
-			return fmt.Errorf("invalid action type: %s", action.Type)
-		}
-		if action.Type == "timeout" && action.Timeout <= 0 {
-			return fmt.Errorf("timeout action requires positive timeout value")
+	if len(c.Actions) > 0 {
+		for _, action := range c.Actions {
+			if action.DangerLevel == "" {
+				continue // danger_levelが空の場合はスキップ
+			}
+			if action.Type == "" {
+				return fmt.Errorf("action missing type")
+			}
+			if action.Type != "confirm" && action.Type != "timeout" && action.Type != "force" {
+				return fmt.Errorf("invalid action type: %s", action.Type)
+			}
+			if action.Type == "timeout" && action.Timeout <= 0 {
+				return fmt.Errorf("timeout action requires positive timeout value")
+			}
 		}
 	}
 

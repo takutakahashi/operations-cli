@@ -21,42 +21,73 @@ var (
 	version = "dev"
 	commit  = "none"
 	date    = "unknown"
+
+	// コマンドラインフラグ
+	configFile string
 )
 
 // rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "operations",
-	Short: "Operations CLI tool",
-	Long:  "A CLI tool for executing operations defined in a configuration file",
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// バージョン表示の場合は設定ファイルの読み込みをスキップ
-		if cmd.Flag("version") != nil && cmd.Flag("version").Changed {
+var rootCmd *cobra.Command
+
+func init() {
+	rootCmd = newRootCmd()
+	AddExecCommand(rootCmd)
+	AddListCommand(rootCmd)
+}
+
+func newRootCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "operations",
+		Short: "Operations CLI tool",
+		Long:  "A CLI tool for executing operations defined in a configuration file",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			// バージョン表示の場合は設定ファイルの読み込みをスキップ
+			if cmd.Flag("version") != nil && cmd.Flag("version").Changed {
+				return nil
+			}
+
+			// Load config using Viper
+			if err := loadConfig(); err != nil {
+				return fmt.Errorf("failed to load config: %w", err)
+			}
+
+			if err := cfg.Validate(); err != nil {
+				return fmt.Errorf("invalid configuration: %w", err)
+			}
+
+			// Create and configure the tool manager
+			toolMgr = tool.NewManager(cfg)
+
+			// Create the appropriate executor based on flags
+			exec, err := createExecutor()
+			if err != nil {
+				return fmt.Errorf("failed to create executor: %w", err)
+			}
+
+			// Set executor for the tool manager
+			toolMgr.WithExecutor(exec)
+
 			return nil
-		}
+		},
+	}
 
-		// Load config using Viper
-		if err := loadConfig(); err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
+	// Add version flag
+	cmd.PersistentFlags().BoolP("version", "V", false, "Show version information")
 
-		if err := cfg.Validate(); err != nil {
-			return fmt.Errorf("invalid configuration: %w", err)
-		}
+	// Add config file flag
+	cmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Path to config file")
 
-		// Create and configure the tool manager
-		toolMgr = tool.NewManager(cfg)
+	// Add SSH flags
+	cmd.PersistentFlags().Bool("remote", false, "Enable remote execution mode via SSH")
+	cmd.PersistentFlags().String("host", "", "SSH remote host")
+	cmd.PersistentFlags().String("user", "", "SSH username")
+	cmd.PersistentFlags().String("key", "", "Path to SSH private key")
+	cmd.PersistentFlags().String("password", "", "SSH password (not recommended)")
+	cmd.PersistentFlags().Int("port", 22, "SSH port")
+	cmd.PersistentFlags().Duration("timeout", 10*time.Second, "SSH connection timeout")
+	cmd.PersistentFlags().Bool("verify-host", true, "Verify host key")
 
-		// Create the appropriate executor based on flags
-		exec, err := createExecutor()
-		if err != nil {
-			return fmt.Errorf("failed to create executor: %w", err)
-		}
-
-		// Set executor for the tool manager
-		toolMgr.WithExecutor(exec)
-
-		return nil
-	},
+	return cmd
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -67,40 +98,28 @@ func Execute() {
 	}
 }
 
-func init() {
-	// Initialize Viper
-	initViper()
+func loadConfig() error {
+	// Reset Viper to ensure clean state
+	viper.Reset()
 
-	// Add version flag
-	rootCmd.PersistentFlags().BoolP("version", "V", false, "Show version information")
-
-	// Add SSH flags
-	rootCmd.PersistentFlags().Bool("remote", false, "Enable remote execution mode via SSH")
-	rootCmd.PersistentFlags().String("host", "", "SSH remote host")
-	rootCmd.PersistentFlags().String("user", "", "SSH username")
-	rootCmd.PersistentFlags().String("key", "", "Path to SSH private key")
-	rootCmd.PersistentFlags().String("password", "", "SSH password (not recommended)")
-	rootCmd.PersistentFlags().Int("port", 22, "SSH port")
-	rootCmd.PersistentFlags().Duration("timeout", 10*time.Second, "SSH connection timeout")
-	rootCmd.PersistentFlags().Bool("verify-host", true, "Verify host key")
-
-	// Bind flags to Viper
-	bindFlags(rootCmd)
-}
-
-func initViper() {
-	// Set default config paths
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("$HOME/.operations")
+	if configFile != "" {
+		// カスタム設定ファイルが指定された場合は、それのみを使用
+		viper.SetConfigFile(configFile)
+	} else {
+		// デフォルトの設定ファイルを探す
+		viper.SetConfigName("config")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("$HOME/.operations")
+	}
 
 	// Set environment variable prefix
 	viper.SetEnvPrefix("OPERATIONS")
 	viper.AutomaticEnv()
-}
 
-func loadConfig() error {
+	// Bind flags to Viper
+	bindFlags(rootCmd)
+
 	// Load config file
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {

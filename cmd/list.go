@@ -41,11 +41,11 @@ var listCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(listCmd)
-
+// AddListCommand adds the list command to the root command
+func AddListCommand(root *cobra.Command) {
 	// Add verbose flag
 	listCmd.Flags().BoolP("verbose", "v", false, "Show detailed information including parameters")
+	root.AddCommand(listCmd)
 }
 
 func printSubtools(subtools []tool.Info, level int, parentPath string, verbose bool) {
