@@ -67,6 +67,12 @@ func newRootCmd() *cobra.Command {
 			// Set executor for the tool manager
 			toolMgr.WithExecutor(exec)
 
+			// ツールコマンドを追加
+			for _, tool := range cfg.Tools {
+				toolCmd := createToolCommand(tool)
+				cmd.AddCommand(toolCmd)
+			}
+
 			return nil
 		},
 	}
@@ -78,11 +84,11 @@ func newRootCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Path to config file")
 
 	// Add SSH flags
-	cmd.PersistentFlags().Bool("remote", false, "Enable remote execution mode via SSH")
-	cmd.PersistentFlags().String("host", "", "SSH remote host")
-	cmd.PersistentFlags().String("user", "", "SSH username")
-	cmd.PersistentFlags().String("key", "", "Path to SSH private key")
-	cmd.PersistentFlags().String("password", "", "SSH password (not recommended)")
+	cmd.PersistentFlags().Bool("remote", false, "Enable remote execution via SSH")
+	cmd.PersistentFlags().String("host", "", "SSH remote host (required in remote mode)")
+	cmd.PersistentFlags().String("user", "", "SSH username (default: current user)")
+	cmd.PersistentFlags().String("key", "", "Path to SSH private key (default: ~/.ssh/id_rsa)")
+	cmd.PersistentFlags().String("password", "", "SSH password (key authentication is preferred)")
 	cmd.PersistentFlags().Int("port", 22, "SSH port")
 	cmd.PersistentFlags().Duration("timeout", 10*time.Second, "SSH connection timeout")
 	cmd.PersistentFlags().Bool("verify-host", true, "Verify host key")
