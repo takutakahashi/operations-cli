@@ -1,14 +1,33 @@
 actions:
   - danger_level: high
     type: confirm
-    message: "This is a high danger operation. Proceed? (y/n): "
+    params:
+      message:
+        description: "確認メッセージ"
+        type: string
+        required: true
+        default: "This is a high danger operation. Proceed? (y/n): "
   - danger_level: medium
     type: timeout
-    message: "This is a medium danger operation. Proceeding in 5 seconds."
-    timeout: 5
+    params:
+      message:
+        description: "タイムアウトメッセージ"
+        type: string
+        required: true
+        default: "This is a medium danger operation. Proceeding in {{.timeout}} seconds."
+      timeout:
+        description: "タイムアウト秒数"
+        type: integer
+        required: true
+        default: 5
   - danger_level: low
     type: force
-    message: "This is a low danger operation."
+    params:
+      message:
+        description: "メッセージ"
+        type: string
+        required: true
+        default: "This is a low danger operation."
 
 tools:
   - name: kubectl
@@ -26,34 +45,62 @@ tools:
               - kube-public
               - default
     subtools:
-      - name: get pod
+      - name: list namespace
+        args: ["get", "namespace", "-o", "json"]
+      - name: list pod
         args: ["get", "pod", "-o", "json", "-n", "{{.namespace}}"]
+        params:
+          namespace:
+            description: The namespace to list
+            type: string
+            required: true
+      - name: list node
+        args: ["get", "node", "-o", "json"]
+      - name: get node
+        args: ["get", "node", "{{.node}}", "-o", "json"]
+        params:
+          node:
+            description: The node to get
+            type: string
+            required: true
+      - name: rollout restart deployment
+        args: ["rollout", "restart", "deployment", "{{.deployment}}", "-n", "{{.namespace}}"]
+        params:
+          deployment:
+            description: The deployment to restart
+            type: string
+            required: true
+          namespace:
+            description: The namespace to restart the deployment in
+            type: string
+            required: true  
+      - name: list pod
+        args: ["get", "pod", "-n", "{{.namespace}}", "-o", "json"]
+        params:
+          namespace:
+            description: The namespace to list
+            type: string
+            required: true
       - name: describe pod
+        args: ["describe", "pod", "{{.pod}}", "-n", "{{.namespace}}"]
         params:
           pod:
             description: The pod to describe
             type: string
             required: true
-        args: ["describe", "pod", "{{.pod}}", "-n", "{{.namespace}}"]
+          namespace:
+            description: The namespace of the pod
+            type: string
+            required: true
       - name: delete pod
         danger_level: high
+        args: ["delete", "pod", "{{.pod}}", "-n", "{{.namespace}}"]
         params:
           pod:
             description: The pod to delete
             type: string
             required: true
-        args: ["delete", "pod", "{{.pod}}", "-n", "{{.namespace}}"]
-  
-  - name: echo
-    command:
-      - echo
-    params:
-      message:
-        description: The message to echo
-        type: string
-        required: true
-    subtools:
-      - name: hello
-        args: ["Hello, {{.message}}!"]
-      - name: goodbye
-        args: ["Goodbye, {{.message}}!"]
+          namespace:
+            description: The namespace of the pod
+            type: string
+            required: true
