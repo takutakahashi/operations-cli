@@ -26,7 +26,7 @@ fi
 
 # Test 2: Echo hello command
 echo -e "\n${GREEN}Test 2: Echo hello command${NC}"
-${OPERATIONS_BIN} exec echo_hello --message "e2e test"
+${OPERATIONS_BIN} exec echo_hello --set message="e2e test"
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 2 passed${NC}"
 else
@@ -36,7 +36,7 @@ fi
 
 # Test 3: Echo goodbye command
 echo -e "\n${GREEN}Test 3: Echo goodbye command${NC}"
-${OPERATIONS_BIN} exec echo_goodbye --message "e2e test"
+${OPERATIONS_BIN} exec echo_goodbye --set message="e2e test"
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 3 passed${NC}"
 else
@@ -61,6 +61,16 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 5 passed${NC}"
 else
     echo -e "${RED}✗ Test 5 failed${NC}"
+    exit 1
+fi
+
+# Test 6: Sleep command with --set parameter
+echo -e "\n${GREEN}Test 6: Sleep command with --set parameter${NC}"
+echo "y" | ${OPERATIONS_BIN} exec sleep_long --set seconds=2
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ Test 6 passed${NC}"
+else
+    echo -e "${RED}✗ Test 6 failed${NC}"
     exit 1
 fi
 

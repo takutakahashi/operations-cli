@@ -24,7 +24,7 @@ echo "SSH connection: ${SSH_USER}@${SSH_HOST}:${SSH_PORT}"
 
 # Test 1: Echo hello via SSH
 echo -e "\n${GREEN}Test 1: Echo hello command via SSH${NC}"
-${OPERATIONS_BIN} --config "${CONFIG_FILE}" --remote --host ${SSH_HOST} --port ${SSH_PORT} --user ${SSH_USER} --password ${SSH_PASSWORD} exec echo_hello --message "SSH e2e test"
+${OPERATIONS_BIN} --config "${CONFIG_FILE}" --remote --host ${SSH_HOST} --port ${SSH_PORT} --user ${SSH_USER} --password ${SSH_PASSWORD} exec echo_hello --set message="SSH e2e test"
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 1 passed${NC}"
 else
@@ -39,6 +39,16 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 2 passed${NC}"
 else
     echo -e "${RED}✗ Test 2 failed${NC}"
+    exit 1
+fi
+
+# Test 3: Sleep long via SSH with --set parameter
+echo -e "\n${GREEN}Test 3: Sleep long command via SSH with --set parameter${NC}"
+echo "y" | ${OPERATIONS_BIN} --config "${CONFIG_FILE}" --remote --host ${SSH_HOST} --port ${SSH_PORT} --user ${SSH_USER} --password ${SSH_PASSWORD} exec sleep_long --set seconds=2
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ Test 3 passed${NC}"
+else
+    echo -e "${RED}✗ Test 3 failed${NC}"
     exit 1
 fi
 

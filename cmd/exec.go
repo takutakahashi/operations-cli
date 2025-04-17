@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -28,10 +29,19 @@ If no subtool is specified, the main tool will be executed.`,
 		// パラメータの取得
 		params := make(map[string]string)
 		cmd.Flags().VisitAll(func(f *pflag.Flag) {
-			if f.Changed {
+			if f.Changed && f.Name != "set" {
 				params[f.Name] = f.Value.String()
 			}
 		})
+
+		// --set フラグで指定されたパラメータを追加
+		setParams, _ := cmd.Flags().GetStringArray("set")
+		for _, param := range setParams {
+			parts := strings.SplitN(param, "=", 2)
+			if len(parts) == 2 {
+				params[parts[0]] = parts[1]
+			}
+		}
 
 		// ツールの実行
 		toolPath := toolName
@@ -44,9 +54,5 @@ If no subtool is specified, the main tool will be executed.`,
 
 // AddExecCommand adds the exec command to the root command
 func AddExecCommand(root *cobra.Command) {
-	// パラメータフラグを追加
-	execCmd.Flags().String("message", "", "Message to echo")
-	execCmd.Flags().Int("seconds", 0, "Seconds to sleep")
-
 	root.AddCommand(execCmd)
 }
