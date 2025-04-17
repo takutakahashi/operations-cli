@@ -3,7 +3,7 @@ before:
     - go mod tidy
 builds:
   - id: operations
-    main: ./cmd/operations/main.go
+    main: ./main.go
     binary: operations
     env:
       - CGO_ENABLED=0
@@ -14,7 +14,7 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+      - -s -w -X github.com/takutakahashi/operation-mcp/cmd.version={{.Version}} -X github.com/takutakahashi/operation-mcp/cmd.commit={{.Commit}} -X github.com/takutakahashi/operation-mcp/cmd.date={{.Date}}
 archives:
   - format: tar.gz
     name_template: >-

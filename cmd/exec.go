@@ -44,5 +44,9 @@ If no subtool is specified, the main tool will be executed.`,
 
 // AddExecCommand adds the exec command to the root command
 func AddExecCommand(root *cobra.Command) {
+	// パラメータフラグを追加
+	execCmd.Flags().String("message", "", "Message to echo")
+	execCmd.Flags().Int("seconds", 0, "Seconds to sleep")
+
 	root.AddCommand(execCmd)
 }

@@ -13,7 +13,7 @@ build: $(BUILD_DIR)/$(BINARY_NAME)
 
 $(BUILD_DIR)/$(BINARY_NAME): $(GO_FILES)
 	@mkdir -p $(BUILD_DIR)
-	go build -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/operations
+	go build -o $(BUILD_DIR)/$(BINARY_NAME) .
 
 # Run tests
 test:
