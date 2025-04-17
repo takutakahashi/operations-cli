@@ -1,0 +1,31 @@
+actions:
+  - danger_level: high
+    type: confirm
+    message: "This is a high danger operation. Proceed? (y/n): "
+  - danger_level: medium
+    type: timeout
+    message: "This is a medium danger operation. Proceeding in 5 seconds."
+    timeout: 5
+  - danger_level: low
+    type: force
+    message: "This is a low danger operation."
+
+tools:
+  - name: kubectl
+    command:
+      - kubectl
+    params:
+      namespace:
+        description: namespace name
+        type: string
+        required: true
+    subtools:
+      - name: get pod
+        params:
+          pod:
+            description: pod name
+            type: string
+            required: true
+        args: ["get", "pod", "{{.pod}}"]
+      - name: list pod
+        args: ["get", "pod", "-o", "wide"]
