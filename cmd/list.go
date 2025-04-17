@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/takutakahashi/operation-mcp/pkg/config"
 	"github.com/takutakahashi/operation-mcp/pkg/tool"
 )
 
@@ -29,14 +31,17 @@ var listCmd = &cobra.Command{
 		fmt.Println("Available tools:")
 		fmt.Println()
 
-		// Display tools
+		// Display tools and subtools in a flat structure
 		for _, tool := range tools {
-			fmt.Println(tool.Name)
+			// Display the root tool
+			fmt.Printf("%s\n", tool.Name)
+			if verbose && len(tool.Params) > 0 {
+				printParameters(tool.Params, 1)
+			}
+			fmt.Println()
 
-			// Display subtools recursively
-			printSubtools(tool.Subtools, 1, tool.Name, verbose)
-
-			fmt.Println() // Empty line between tools
+			// Display all subtools recursively with tool_subtool format
+			printSubtoolsFlat(tool.Subtools, tool.Name, verbose)
 		}
 	},
 }
@@ -48,35 +53,39 @@ func AddListCommand(root *cobra.Command) {
 	root.AddCommand(listCmd)
 }
 
-func printSubtools(subtools []tool.Info, level int, parentPath string, verbose bool) {
+// printSubtoolsFlat prints all subtools in a flat list with tool_subtool format
+func printSubtoolsFlat(subtools []tool.Info, parentPath string, verbose bool) {
 	for _, subtool := range subtools {
-		// Print indentation
-		for i := 0; i < level; i++ {
-			fmt.Print("  ")
-		}
-
-		// Print subtool name
-		fmt.Printf("└─ %s\n", subtool.Name)
-
+		// Format the full tool path (tool_subtool)
+		fullPath := fmt.Sprintf("%s_%s", parentPath, subtool.Name)
+		
+		// Print the full tool path
+		fmt.Printf("%s\n", fullPath)
+		
 		// Print parameters if verbose
 		if verbose && len(subtool.Params) > 0 {
-			for i := 0; i < level+1; i++ {
-				fmt.Print("  ")
-			}
-			fmt.Println("Parameters:")
-			for name, param := range subtool.Params {
-				for i := 0; i < level+2; i++ {
-					fmt.Print("  ")
-				}
-				fmt.Printf("- %s: %s", name, param.Description)
-				if param.Required {
-					fmt.Print(" (required)")
-				}
-				fmt.Println()
-			}
+			printParameters(subtool.Params, 1)
 		}
+		
+		fmt.Println() // Empty line for readability
+		
+		// Recursively print nested subtools
+		nextParentPath := fullPath
+		printSubtoolsFlat(subtool.Subtools, nextParentPath, verbose)
+	}
+}
 
-		// Recursively print subtools
-		printSubtools(subtool.Subtools, level+1, parentPath+"."+subtool.Name, verbose)
+// printParameters prints parameters in a readable format
+func printParameters(params map[string]config.Parameter, indentLevel int) {
+	indent := strings.Repeat("  ", indentLevel)
+	fmt.Printf("%sParameters:\n", indent)
+	
+	// Print each parameter with its description
+	for name, param := range params {
+		fmt.Printf("%s  %s: %s", indent, name, param.Description)
+		if param.Required {
+			fmt.Print(" (required)")
+		}
+		fmt.Println()
 	}
 }
