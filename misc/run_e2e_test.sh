@@ -8,15 +8,15 @@ NC='\033[0m' # No Color
 
 # Build the operations binary
 cd "$(dirname "$0")/.."
-go build -o build/operations cmd/operations/main.go
-OPERATIONS_BIN="$(pwd)/build/operations"
+go build -o build/operations .
+OPERATIONS_BIN="$(pwd)/build/operations -c misc/e2e.yaml"
 
 echo "Starting e2e tests..."
 echo "Using operations binary: ${OPERATIONS_BIN}"
 
-# Test 1: Echo hello
-echo -e "\n${GREEN}Test 1: Echo hello command${NC}"
-${OPERATIONS_BIN} --config "$(pwd)/misc/e2e.yaml" echo hello --message "e2e test"
+# Test 1: List tools
+echo -e "\n${GREEN}Test 1: List tools command${NC}"
+${OPERATIONS_BIN} list
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 1 passed${NC}"
 else
@@ -24,9 +24,9 @@ else
     exit 1
 fi
 
-# Test 2: Echo goodbye
-echo -e "\n${GREEN}Test 2: Echo goodbye command${NC}"
-${OPERATIONS_BIN} --config "$(pwd)/misc/e2e.yaml" echo goodbye --message "e2e test"
+# Test 2: Echo hello command
+echo -e "\n${GREEN}Test 2: Echo hello command${NC}"
+${OPERATIONS_BIN} exec echo_hello --message "e2e test"
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 2 passed${NC}"
 else
@@ -34,9 +34,9 @@ else
     exit 1
 fi
 
-# Test 3: Sleep short (low danger level)
-echo -e "\n${GREEN}Test 3: Sleep short command (low danger level)${NC}"
-${OPERATIONS_BIN} --config "$(pwd)/misc/e2e.yaml" sleep short
+# Test 3: Echo goodbye command
+echo -e "\n${GREEN}Test 3: Echo goodbye command${NC}"
+${OPERATIONS_BIN} exec echo_goodbye --message "e2e test"
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 3 passed${NC}"
 else
@@ -44,9 +44,9 @@ else
     exit 1
 fi
 
-# Test 4: Sleep medium (medium danger level)
-echo -e "\n${GREEN}Test 4: Sleep medium command (medium danger level)${NC}"
-${OPERATIONS_BIN} --config "$(pwd)/misc/e2e.yaml" sleep medium
+# Test 4: Sleep command (low danger level)
+echo -e "\n${GREEN}Test 4: Sleep command (low danger level)${NC}"
+${OPERATIONS_BIN} exec sleep_short
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 4 passed${NC}"
 else
@@ -54,9 +54,9 @@ else
     exit 1
 fi
 
-# Test 5: Sleep long (high danger level)
-echo -e "\n${GREEN}Test 5: Sleep long command (high danger level)${NC}"
-echo "y" | ${OPERATIONS_BIN} --config "$(pwd)/misc/e2e.yaml" sleep long --seconds 5
+# Test 5: Sleep command (high danger level)
+echo -e "\n${GREEN}Test 5: Sleep command (high danger level)${NC}"
+echo "y" | ${OPERATIONS_BIN} exec sleep_medium
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 5 passed${NC}"
 else
