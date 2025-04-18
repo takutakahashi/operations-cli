@@ -29,7 +29,7 @@ curl -fsSL https://takutakahashi.github.io/operation-mcp/install.sh | sh -s -- -
 | オプション | 説明 |
 |------------|------|
 | `-v, --version VERSION` | インストールするバージョンを指定します（デフォルト: 最新） |
-| `-d, --dir DIRECTORY` | インストール先ディレクトリを指定します（デフォルト: /usr/local/bin） |
+| `-d, --dir DIRECTORY` | インストール先ディレクトリを指定します（デフォルト: $HOME/.local/bin） |
 | `-f, --force` | 確認プロンプトをスキップします |
 | `--dry-run` | 変更を加えずに何が行われるかを表示します |
 | `-h, --help` | ヘルプメッセージを表示します |

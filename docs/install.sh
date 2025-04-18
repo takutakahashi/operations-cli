@@ -156,7 +156,7 @@ fetch_latest_release() {
 # Find the correct asset URL for download
 find_asset_url() {
     # Example asset name: operation-mcp_0.3.0_darwin_aarch64.tar.gz
-    ASSET_PATTERN="operation-mcp_.*_$OS_$ARCH_NAME.tar.gz"
+    ASSET_PATTERN="operation-mcp_.*_${OS}_${ARCH_NAME}.tar.gz"
     
     # Use jq to find the matching asset URL
     ASSET_URL=$(echo "$RELEASE_INFO" | jq -r ".assets[] | select(.name | test(\"$ASSET_PATTERN\")) | .browser_download_url" | head -n 1)
