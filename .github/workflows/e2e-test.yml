@@ -50,6 +50,16 @@ jobs:
       - name: Run SSH E2E tests
         run: bash ./misc/run_ssh_e2e_test.sh
         
+      - name: Run Remote Config E2E tests
+        run: |
+          # Use GitHub Pages URL if available, otherwise use local server
+          if [[ "$GITHUB_REPOSITORY" == "takutakahashi/operation-mcp" ]]; then
+            # Replace the URL in the script with the GitHub Pages URL
+            PAGES_URL="https://takutakahashi.github.io/operation-mcp/remote_config.yaml"
+            sed -i "s|http://localhost:8080/remote_config.yaml|$PAGES_URL|g" ./misc/run_remote_config_e2e_test.sh
+          fi
+          bash ./misc/run_remote_config_e2e_test.sh
+        
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:

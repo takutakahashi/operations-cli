@@ -1,6 +1,8 @@
 module github.com/takutakahashi/operation-mcp
 
-go 1.24
+go 1.23.0
+
+toolchain go1.23.8
 
 require (
 	github.com/spf13/cobra v1.9.1

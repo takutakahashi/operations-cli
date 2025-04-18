@@ -1,0 +1,54 @@
+actions:
+  - danger_level: low
+    type: confirm
+    message: "This is a low-risk operation from remote config. Proceed?"
+  - danger_level: medium
+    type: confirm
+    message: "This is a medium-risk operation from remote config. Are you sure you want to proceed?"
+  - danger_level: high
+    type: confirm
+    message: "This is a high-risk operation from remote config. Please confirm carefully before proceeding."
+
+tools:
+  - name: remote-echo
+    command:
+      - echo
+    subtools:
+      - name: hello
+        params:
+          message:
+            description: The message to echo
+            type: string
+            required: true
+        args: ["Remote Hello, {{.message}}!"]
+      - name: goodbye
+        params:
+          message:
+            description: The message to echo
+            type: string
+            required: true
+        args: ["Remote Goodbye, {{.message}}!"]
+  
+  - name: remote-sleep
+    command:
+      - sleep
+    params:
+      seconds:
+        description: The number of seconds to sleep
+        type: string
+        required: false
+    subtools:
+      - name: short
+        args: ["1"]
+        danger_level: low
+      - name: medium
+        args: ["2"]
+        danger_level: medium
+      - name: long
+        params:
+          seconds:
+            description: The number of seconds to sleep
+            type: string
+            required: true
+        args: ["{{.seconds}}"]
+        danger_level: high
