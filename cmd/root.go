@@ -45,9 +45,22 @@ func newRootCmd() *cobra.Command {
 		Use:   "operations",
 		Short: "Operations CLI tool",
 		Long:  "A CLI tool for executing operations defined in a configuration file",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// バージョン表示の場合
+			if versionFlag, _ := cmd.Flags().GetBool("version"); versionFlag {
+				fmt.Printf("operations %s (commit: %s, built: %s)\n", version, commit, date)
+				return nil
+			}
+			return cmd.Help()
+		},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// バージョン表示の場合は設定ファイルの読み込みをスキップ
 			if cmd.Flag("version") != nil && cmd.Flag("version").Changed {
+				return nil
+			}
+
+			// upgrade コマンドの場合も設定ファイルの読み込みをスキップ
+			if cmd.Name() == "upgrade" || (cmd.Parent() != nil && cmd.Parent().Name() == "upgrade") {
 				return nil
 			}
 
