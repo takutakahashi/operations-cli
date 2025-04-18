@@ -29,6 +29,11 @@ actions:
         required: true
         default: "This is a low danger operation."
 
+# 外部の設定ファイルをインポート
+imports:
+  - examples/imported-config.yaml
+  # - /path/to/another/config.yaml  # 絶対パスでの指定も可能
+
 tools:
   - name: kubectl
     command:

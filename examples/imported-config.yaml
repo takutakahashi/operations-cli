@@ -1,0 +1,32 @@
+# Example imported config file
+#
+# This is an example of a config file that can be imported by the main config.yaml file.
+
+actions:
+  - danger_level: low
+    type: force
+    params:
+      message:
+        description: "メッセージ"
+        type: string
+        required: true
+        default: "This is a low danger operation from imported config."
+
+tools:
+  - name: imported-tool
+    command:
+      - echo
+      - "This is an imported tool"
+    params:
+      message:
+        description: "The message to echo"
+        type: string
+        required: false
+    subtools:
+      - name: hello
+        args: ["Hello,", "{{.name}}"]
+        params:
+          name:
+            description: "Your name"
+            type: string
+            required: true
