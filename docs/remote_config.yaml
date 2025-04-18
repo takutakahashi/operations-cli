@@ -1,41 +1,52 @@
+actions:
+  - danger_level: low
+    type: confirm
+    message: "This is a low-risk operation. Proceed?"
+  - danger_level: medium
+    type: confirm
+    message: "This is a medium-risk operation. Are you sure you want to proceed?"
+  - danger_level: high
+    type: confirm
+    message: "This is a high-risk operation. Please confirm carefully before proceeding."
+
 tools:
   - name: remote-echo
-    description: "Remote echo command"
-    command: "echo"
-    danger_level: 0
-    actions:
+    command:
+      - echo
+    subtools:
       - name: hello
-        description: "Say hello"
-        command: "echo Remote Hello, {{ .message }}!"
-        parameters:
-          - name: message
-            description: "Message to echo"
+        params:
+          message:
+            description: Message to echo
+            type: string
+            required: false
             default: "world"
+        args: ["Remote Hello, {{.message}}!"]
       - name: goodbye
-        description: "Say goodbye"
-        command: "echo Remote Goodbye, {{ .message }}!"
-        parameters:
-          - name: message
-            description: "Message to echo"
+        params:
+          message:
+            description: Message to echo
+            type: string
+            required: false
             default: "world"
+        args: ["Remote Goodbye, {{.message}}!"]
+  
   - name: remote-sleep
-    description: "Remote sleep command"
-    command: "sleep"
-    danger_level: 0
-    actions:
+    command:
+      - sleep
+    subtools:
       - name: short
-        description: "Sleep for a short time"
-        command: "sleep 1"
-        danger_level: 0
+        args: ["1"]
+        danger_level: low
       - name: medium
-        description: "Sleep for a medium time"
-        command: "sleep 2"
-        danger_level: 1
+        args: ["2"]
+        danger_level: medium
       - name: long
-        description: "Sleep for a long time"
-        command: "sleep {{ .seconds }}"
-        danger_level: 2
-        parameters:
-          - name: seconds
-            description: "Number of seconds to sleep"
+        params:
+          seconds:
+            description: Number of seconds to sleep
+            type: string
+            required: false
             default: "5"
+        args: ["{{.seconds}}"]
+        danger_level: high
