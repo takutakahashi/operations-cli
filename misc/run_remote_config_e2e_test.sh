@@ -9,22 +9,31 @@ NC='\033[0m' # No Color
 # Build the operations binary
 cd "$(dirname "$0")/.."
 
-# Create a simple HTTP server to serve the remote config file
-echo "Starting Python HTTP server..."
-mkdir -p /tmp/remote-config-test
-cp misc/remote_config.yaml /tmp/remote-config-test/
-cd /tmp/remote-config-test
-python3 -m http.server 8080 &
-SERVER_PID=$!
+# Check if we're running in GitHub Actions
+if [ -n "$GITHUB_ACTIONS" ]; then
+  # In GitHub Actions, use the GitHub Pages URL
+  REMOTE_CONFIG_URL="https://takutakahashi.github.io/operation-mcp/remote_config.yaml"
+else
+  # Create a simple HTTP server to serve the remote config file
+  echo "Starting Python HTTP server..."
+  mkdir -p /tmp/remote-config-test
+  cp docs/remote_config.yaml /tmp/remote-config-test/
+  cd /tmp/remote-config-test
+  python3 -m http.server 8080 &
+  SERVER_PID=$!
 
-# Ensure the server is killed when the script exits
-trap "kill $SERVER_PID" EXIT
+  # Ensure the server is killed when the script exits
+  trap "kill $SERVER_PID" EXIT
 
-# Wait for the server to start
-sleep 2
+  # Wait for the server to start
+  sleep 2
 
-# Go back to the project directory
-cd - > /dev/null
+  # Go back to the project directory
+  cd - > /dev/null
+  
+  # Set the local URL
+  REMOTE_CONFIG_URL="http://localhost:8080/remote_config.yaml"
+fi
 
 # Use the existing binary if available, or skip the tests
 if [ ! -f "build/operations" ]; then
@@ -38,8 +47,7 @@ OPERATIONS_BIN="$(pwd)/build/operations"
 # Wait for the server to start
 sleep 2
 
-# Remote config URL
-REMOTE_CONFIG_URL="http://localhost:8080/remote_config.yaml"
+# Remote config URL is set above
 
 echo "Starting remote config e2e tests..."
 echo "Using operations binary: ${OPERATIONS_BIN}"
