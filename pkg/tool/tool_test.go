@@ -23,11 +23,11 @@ func TestFindTool(t *testing.T) {
 				},
 				Subtools: []config.Subtool{
 					{
-						Name: "get pod",
+						Name: "get",
 						Args: []string{"get", "pod", "-o", "json", "-n", "{{.namespace}}"},
 					},
 					{
-						Name: "describe pod",
+						Name: "describe",
 						Params: map[string]config.Parameter{
 							"pod": {
 								Description: "The pod to describe",
@@ -38,7 +38,7 @@ func TestFindTool(t *testing.T) {
 						Args: []string{"describe", "pod", "{{.pod}}", "-n", "{{.namespace}}"},
 					},
 					{
-						Name:        "delete pod",
+						Name:        "delete",
 						DangerLevel: "high",
 						Params: map[string]config.Parameter{
 							"pod": {
@@ -68,6 +68,43 @@ func TestFindTool(t *testing.T) {
 					},
 				},
 			},
+			{
+				Name:    "parent",
+				Command: []string{"echo", "parent"},
+				Params: map[string]config.Parameter{
+					"parent-param": {
+						Description: "A parameter for the parent",
+						Type:        "string",
+						Required:    false,
+					},
+				},
+				Subtools: []config.Subtool{
+					{
+						Name: "child",
+						Args: []string{"child", "{{.parent-param}}"},
+						Params: map[string]config.Parameter{
+							"child-param": {
+								Description: "A parameter for the child",
+								Type:        "string",
+								Required:    false,
+							},
+						},
+						Subtools: []config.Subtool{
+							{
+								Name: "grandchild",
+								Args: []string{"grandchild", "{{.parent-param}}", "{{.child-param}}", "{{.grandchild-param}}"},
+								Params: map[string]config.Parameter{
+									"grandchild-param": {
+										Description: "A parameter for the grandchild",
+										Type:        "string",
+										Required:    false,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -93,7 +130,7 @@ func TestFindTool(t *testing.T) {
 	}
 
 	// Test finding subtool
-	command, script, params, dangerLevel, err = mgr.FindTool("kubectl_get_pod")
+	command, script, params, dangerLevel, err = mgr.FindTool("kubectl_get")
 	if err != nil {
 		t.Fatalf("FindTool failed for subtool: %v", err)
 	}
@@ -114,7 +151,7 @@ func TestFindTool(t *testing.T) {
 	}
 
 	// Test finding subtool with danger level
-	command, script, params, dangerLevel, err = mgr.FindTool("kubectl_delete_pod")
+	command, script, params, dangerLevel, err = mgr.FindTool("kubectl_delete")
 	if err != nil {
 		t.Fatalf("FindTool failed for subtool with danger level: %v", err)
 	}
@@ -170,6 +207,39 @@ func TestFindTool(t *testing.T) {
 		t.Errorf("Expected empty danger level, got '%s'", dangerLevel)
 	}
 
+	// Test finding nested subtool
+	command, script, params, dangerLevel, err = mgr.FindTool("parent_child_grandchild")
+	if err != nil {
+		t.Fatalf("FindTool failed for nested subtool: %v", err)
+	}
+	if len(command) != 6 {
+		t.Errorf("Expected 6 command parts, got %d: %v", len(command), command)
+	}
+	if command[0] != "echo" || command[1] != "parent" || command[2] != "grandchild" {
+		t.Errorf("Expected command starting with ['echo', 'parent', 'grandchild'], got %v", command)
+	}
+	if script != "" {
+		t.Errorf("Expected empty script, got '%s'", script)
+	}
+	if len(params) != 3 {
+		t.Errorf("Expected 3 parameters, got %d", len(params))
+	}
+	_, hasParentParam := params["parent-param"]
+	if !hasParentParam {
+		t.Errorf("Expected parent-param to be included in parameters")
+	}
+	_, hasChildParam := params["child-param"]
+	if !hasChildParam {
+		t.Errorf("Expected child-param to be included in parameters")
+	}
+	_, hasGrandchildParam := params["grandchild-param"]
+	if !hasGrandchildParam {
+		t.Errorf("Expected grandchild-param to be included in parameters")
+	}
+	if dangerLevel != "" {
+		t.Errorf("Expected empty danger level, got '%s'", dangerLevel)
+	}
+
 	// Test finding non-existent tool
 	_, _, _, _, err = mgr.FindTool("nonexistent")
 	if err == nil {
@@ -180,6 +250,12 @@ func TestFindTool(t *testing.T) {
 	_, _, _, _, err = mgr.FindTool("kubectl_nonexistent")
 	if err == nil {
 		t.Errorf("FindTool should fail for non-existent subtool")
+	}
+
+	// Test finding non-existent nested subtool
+	_, _, _, _, err = mgr.FindTool("parent_child_nonexistent")
+	if err == nil {
+		t.Errorf("FindTool should fail for non-existent nested subtool")
 	}
 }
 

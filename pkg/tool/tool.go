@@ -82,38 +82,42 @@ func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config
 		return command, script, params, "", nil
 	}
 
-	// Navigate through subtools
+	// Navigate through the subtool hierarchy
+	currentSubtools := rootTool.Subtools
 	var currentSubtool *config.Subtool
 	dangerLevel := ""
 
-	// Join the remaining parts to form the subtool path
-	subtoolPath := strings.Join(parts[1:], "_")
+	// For each part of the path after the root tool
+	for _, part := range parts[1:] {
+		found := false
+		// Look for a matching subtool at the current level
+		for j := range currentSubtools {
+			subtoolName := strings.ReplaceAll(currentSubtools[j].Name, " ", "_")
+			if subtoolName == part {
+				currentSubtool = &currentSubtools[j]
+				// Add parameters from this level
+				for name, param := range currentSubtool.Params {
+					params[name] = param
+				}
 
-	// Find the matching subtool
-	found := false
-	for j := range rootTool.Subtools {
-		subtoolName := strings.ReplaceAll(rootTool.Subtools[j].Name, " ", "_")
-		if subtoolName == subtoolPath {
-			currentSubtool = &rootTool.Subtools[j]
-			found = true
-			break
+				// Update danger level if specified at this level
+				if currentSubtool.DangerLevel != "" {
+					dangerLevel = currentSubtool.DangerLevel
+				}
+
+				// Move to the next level in the hierarchy
+				currentSubtools = currentSubtool.Subtools
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return nil, "", nil, "", fmt.Errorf("subtool not found: %s in path %s", part, toolPath)
 		}
 	}
 
-	if !found {
-		return nil, "", nil, "", fmt.Errorf("subtool not found: %s", toolPath)
-	}
-
-	// Add subtool parameters
-	for name, param := range currentSubtool.Params {
-		params[name] = param
-	}
-
-	// Update danger level if specified
-	if currentSubtool.DangerLevel != "" {
-		dangerLevel = currentSubtool.DangerLevel
-	}
-
+	// Now currentSubtool is the deepest subtool we found
 	// Add the args from the final subtool or override script
 	if currentSubtool != nil {
 		if len(currentSubtool.Args) > 0 {
