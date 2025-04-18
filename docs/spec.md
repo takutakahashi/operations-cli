@@ -60,6 +60,72 @@ actions:
      - timeout: 指定秒数後に自動実行
      - force: 強制実行（警告のみ表示）
 
+## 設定インポート機能
+
+### 設定構造
+
+```yaml
+imports:
+  - <インポートするファイルのパス>
+  - <別のファイルパス>
+```
+
+### 設定項目の説明
+
+1. **インポート (imports)**
+   - インポートする設定ファイルパスのリスト
+   - 相対パスは、メインの設定ファイルからの相対パスとして解釈
+   - 絶対パスも指定可能
+   - 複数のファイルをインポート可能
+
+### 機能要件
+
+1. **設定ファイルの結合**
+   - インポートした設定ファイルの内容をメインの設定と結合
+   - アクションリストはすべてのファイルから結合
+   - ツールリストもすべてのファイルから結合
+   - 同名のツールが複数のファイルで定義されている場合、メインファイルでの定義が優先
+   - SSHなどの単一の設定は、メインファイルでの定義が優先
+
+2. **循環インポートの検出**
+   - 循環参照を検出して、無限ループを防止
+   - 循環参照が検出された場合はエラーメッセージを表示
+
+### 使用例
+
+```yaml
+# メインの設定ファイル
+actions:
+  - danger_level: high
+    type: confirm
+    message: "高危険度の操作です。続行しますか？"
+
+imports:
+  - team/database-tools.yaml
+  - team/network-tools.yaml
+
+tools:
+  - name: kubectl
+    command:
+      - kubectl
+    # ... (他の設定)
+```
+
+```yaml
+# team/database-tools.yaml
+actions:
+  - danger_level: medium
+    type: timeout
+    message: "データベース操作を開始します。"
+    timeout: 10
+
+tools:
+  - name: db-tool
+    command:
+      - db-tool
+    # ... (他の設定)
+```
+
 ## ツール仕様
 
 ### 設定構造
