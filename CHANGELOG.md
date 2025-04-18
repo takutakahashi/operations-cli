@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.6](https://github.com/takutakahashi/operation-mcp/compare/v0.6.5...v0.6.6) - 2025-04-18
+- Add e2e test for remote config import via HTTP by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/52
+
 ## [v0.6.5](https://github.com/takutakahashi/operation-mcp/compare/v0.6.4...v0.6.5) - 2025-04-18
 - version フラグと upgrade コマンドが config を必要としないよう修正 by @kommon-ai in https://github.com/takutakahashi/operation-mcp/pull/49
 
