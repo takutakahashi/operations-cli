@@ -1,8 +1,13 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -111,17 +116,6 @@ func loadConfig() error {
 	// Reset Viper to ensure clean state
 	viper.Reset()
 
-	if configFile != "" {
-		// カスタム設定ファイルが指定された場合は、それのみを使用
-		viper.SetConfigFile(configFile)
-	} else {
-		// デフォルトの設定ファイルを探す
-		viper.SetConfigName("config")
-		viper.SetConfigType("yaml")
-		viper.AddConfigPath(".")
-		viper.AddConfigPath("$HOME/.operations")
-	}
-
 	// Set environment variable prefix
 	viper.SetEnvPrefix("OPERATIONS")
 	viper.AutomaticEnv()
@@ -129,10 +123,50 @@ func loadConfig() error {
 	// Bind flags to Viper
 	bindFlags(rootCmd)
 
-	// Load config file
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			return err
+	if configFile != "" {
+		// Check if the config file is a URL
+		if strings.HasPrefix(configFile, "http://") || strings.HasPrefix(configFile, "https://") {
+			// Fetch config from URL
+			data, err := fetchConfigFromURL(configFile)
+			if err != nil {
+				return fmt.Errorf("failed to fetch config from URL: %w", err)
+			}
+
+			// Set the config type based on file extension
+			ext := filepath.Ext(configFile)
+			if ext != "" {
+				viper.SetConfigType(ext[1:]) // Remove the dot from the extension
+			} else {
+				// Default to YAML if no extension is found
+				viper.SetConfigType("yaml")
+			}
+
+			// Read config from the fetched data
+			if err := viper.ReadConfig(bytes.NewBuffer(data)); err != nil {
+				return fmt.Errorf("failed to read config data: %w", err)
+			}
+		} else {
+			// Local file
+			viper.SetConfigFile(configFile)
+			
+			// Load config file
+			if err := viper.ReadInConfig(); err != nil {
+				return fmt.Errorf("failed to read config file: %w", err)
+			}
+		}
+	} else {
+		// デフォルトの設定ファイルを探す
+		viper.SetConfigName("config")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("$HOME/.operations")
+		
+		// Load config file
+		if err := viper.ReadInConfig(); err != nil {
+			if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+				return err
+			}
+			// ConfigFileNotFoundError の場合は無視（デフォルト値を使用）
 		}
 	}
 
@@ -173,4 +207,32 @@ func createExecutor() (executor.Executor, error) {
 	}
 
 	return executor.NewSSHExecutor(sshConfig, executor.NewOptions())
+}
+
+// fetchConfigFromURL fetches configuration data from a given URL
+func fetchConfigFromURL(url string) ([]byte, error) {
+	// HTTP クライアントの設定
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	
+	// リクエストの作成と送信
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	// ステータスコードのチェック
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP request returned status code %d", resp.StatusCode)
+	}
+	
+	// レスポンスボディの読み込み
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	
+	return body, nil
 }
