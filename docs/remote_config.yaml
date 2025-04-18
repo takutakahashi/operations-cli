@@ -1,0 +1,41 @@
+tools:
+  - name: remote-echo
+    description: "Remote echo command"
+    command: "echo"
+    danger_level: 0
+    actions:
+      - name: hello
+        description: "Say hello"
+        command: "echo Remote Hello, {{ .message }}!"
+        parameters:
+          - name: message
+            description: "Message to echo"
+            default: "world"
+      - name: goodbye
+        description: "Say goodbye"
+        command: "echo Remote Goodbye, {{ .message }}!"
+        parameters:
+          - name: message
+            description: "Message to echo"
+            default: "world"
+  - name: remote-sleep
+    description: "Remote sleep command"
+    command: "sleep"
+    danger_level: 0
+    actions:
+      - name: short
+        description: "Sleep for a short time"
+        command: "sleep 1"
+        danger_level: 0
+      - name: medium
+        description: "Sleep for a medium time"
+        command: "sleep 2"
+        danger_level: 1
+      - name: long
+        description: "Sleep for a long time"
+        command: "sleep {{ .seconds }}"
+        danger_level: 2
+        parameters:
+          - name: seconds
+            description: "Number of seconds to sleep"
+            default: "5"
