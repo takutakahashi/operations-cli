@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.4](https://github.com/takutakahashi/operation-mcp/compare/v0.6.3...v0.6.4) - 2025-04-18
+- Fix: インストールスクリプトのアセットパターンとドキュメントの修正 by @kommon-ai in https://github.com/takutakahashi/operation-mcp/pull/46
+
 ## [v0.6.3](https://github.com/takutakahashi/operation-mcp/compare/v0.6.2...v0.6.3) - 2025-04-18
 - Config に imports 機能を追加 by @kommon-ai in https://github.com/takutakahashi/operation-mcp/pull/43
 
