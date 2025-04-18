@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.7](https://github.com/takutakahashi/operation-mcp/compare/v0.6.6...v0.6.7) - 2025-04-18
+- feat: Add S3 remote configuration support by @kommon-ai in https://github.com/takutakahashi/operation-mcp/pull/55
+
 ## [v0.6.6](https://github.com/takutakahashi/operation-mcp/compare/v0.6.5...v0.6.6) - 2025-04-18
 - Add e2e test for remote config import via HTTP by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/52
 
