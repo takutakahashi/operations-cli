@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -235,4 +236,339 @@ func TestConfigValidate(t *testing.T) {
 	if err := invalidConfig4.Validate(); err == nil {
 		t.Errorf("Validation should fail for config with missing command")
 	}
+}
+
+func TestConfigImport(t *testing.T) {
+	// Create a temporary directory
+	tempDir := t.TempDir()
+	
+	// Create a base config file
+	baseConfigPath := filepath.Join(tempDir, "base_config.yaml")
+	baseConfigContent := `
+actions:
+  - danger_level: high
+    type: confirm
+    message: "This is a high danger operation from base config."
+tools:
+  - name: kubectl
+    command:
+      - kubectl
+    params:
+      namespace:
+        description: The namespace to run the command in
+        type: string
+        required: true
+imports:
+  - imported_config.yaml
+`
+	if err := os.WriteFile(baseConfigPath, []byte(baseConfigContent), 0644); err != nil {
+		t.Fatalf("Failed to write base config file: %v", err)
+	}
+	
+	// Create an imported config file
+	importedConfigPath := filepath.Join(tempDir, "imported_config.yaml")
+	importedConfigContent := `
+actions:
+  - danger_level: medium
+    type: timeout
+    message: "This is a medium danger operation from imported config."
+    timeout: 10
+tools:
+  - name: helm
+    command:
+      - helm
+    params:
+      namespace:
+        description: The namespace to run the command in
+        type: string
+        required: true
+  - name: kubectl
+    command:
+      - kubectl
+      - --kubeconfig=/other/path
+    params:
+      namespace:
+        description: The namespace to run the command in
+        type: string
+        required: true
+`
+	if err := os.WriteFile(importedConfigPath, []byte(importedConfigContent), 0644); err != nil {
+		t.Fatalf("Failed to write imported config file: %v", err)
+	}
+	
+	// Test loading the config with import
+	cfg, err := LoadConfig(baseConfigPath)
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+	
+	// Verify combined actions
+	if len(cfg.Actions) != 2 {
+		t.Errorf("Expected 2 actions, got %d", len(cfg.Actions))
+	}
+	
+	// Verify action from base config
+	if cfg.Actions[0].DangerLevel != "high" || cfg.Actions[0].Type != "confirm" {
+		t.Errorf("First action should be from base config")
+	}
+	
+	// Verify action from imported config
+	if cfg.Actions[1].DangerLevel != "medium" || cfg.Actions[1].Type != "timeout" {
+		t.Errorf("Second action should be from imported config")
+	}
+	
+	// Verify tools (base tools should take precedence over imported tools)
+	if len(cfg.Tools) != 2 {
+		t.Errorf("Expected 2 tools, got %d", len(cfg.Tools))
+	}
+	
+	// Find kubectl tool
+	var kubectlTool *Tool
+	for i := range cfg.Tools {
+		if cfg.Tools[i].Name == "kubectl" {
+			kubectlTool = &cfg.Tools[i]
+			break
+		}
+	}
+	
+	// Verify kubectl tool from base config (should take precedence)
+	if kubectlTool == nil {
+		t.Errorf("Expected kubectl tool not found")
+	} else if len(kubectlTool.Command) != 1 || kubectlTool.Command[0] != "kubectl" {
+		t.Errorf("kubectl command should be from base config, got %v", kubectlTool.Command)
+	}
+	
+	// Verify imports field is cleared
+	if cfg.Imports != nil && len(cfg.Imports) > 0 {
+		t.Errorf("Imports should be cleared after processing")
+	}
+}
+
+func TestConfigImportMultiple(t *testing.T) {
+	// Create a temporary directory
+	tempDir := t.TempDir()
+	
+	// Create a base config file with multiple imports
+	baseConfigPath := filepath.Join(tempDir, "base_config.yaml")
+	baseConfigContent := `
+actions:
+  - danger_level: high
+    type: confirm
+    message: "This is a high danger operation from base config."
+imports:
+  - imported_config1.yaml
+  - imported_config2.yaml
+`
+	if err := os.WriteFile(baseConfigPath, []byte(baseConfigContent), 0644); err != nil {
+		t.Fatalf("Failed to write base config file: %v", err)
+	}
+	
+	// Create first imported config file
+	importedConfigPath1 := filepath.Join(tempDir, "imported_config1.yaml")
+	importedConfigContent1 := `
+actions:
+  - danger_level: medium
+    type: timeout
+    message: "This is a medium danger operation from imported config 1."
+    timeout: 10
+tools:
+  - name: tool1
+    command:
+      - tool1
+`
+	if err := os.WriteFile(importedConfigPath1, []byte(importedConfigContent1), 0644); err != nil {
+		t.Fatalf("Failed to write imported config 1 file: %v", err)
+	}
+	
+	// Create second imported config file
+	importedConfigPath2 := filepath.Join(tempDir, "imported_config2.yaml")
+	importedConfigContent2 := `
+actions:
+  - danger_level: low
+    type: force
+    message: "This is a low danger operation from imported config 2."
+tools:
+  - name: tool2
+    command:
+      - tool2
+`
+	if err := os.WriteFile(importedConfigPath2, []byte(importedConfigContent2), 0644); err != nil {
+		t.Fatalf("Failed to write imported config 2 file: %v", err)
+	}
+	
+	// Test loading the config with multiple imports
+	cfg, err := LoadConfig(baseConfigPath)
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+	
+	// Verify combined actions from all configs
+	if len(cfg.Actions) != 3 {
+		t.Errorf("Expected 3 actions, got %d", len(cfg.Actions))
+	}
+	
+	// Verify tools from all configs
+	if len(cfg.Tools) != 2 {
+		t.Errorf("Expected 2 tools, got %d", len(cfg.Tools))
+	}
+	
+	// Check for tool1 and tool2
+	var hasTool1, hasTool2 bool
+	for _, tool := range cfg.Tools {
+		if tool.Name == "tool1" {
+			hasTool1 = true
+		} else if tool.Name == "tool2" {
+			hasTool2 = true
+		}
+	}
+	
+	if !hasTool1 {
+		t.Errorf("Expected tool1 from imported_config1.yaml not found")
+	}
+	if !hasTool2 {
+		t.Errorf("Expected tool2 from imported_config2.yaml not found")
+	}
+}
+
+func TestConfigImportCircular(t *testing.T) {
+	// Create a temporary directory
+	tempDir := t.TempDir()
+	
+	// Create config file A that imports config B
+	configPathA := filepath.Join(tempDir, "config_a.yaml")
+	configContentA := `
+actions:
+  - danger_level: high
+    type: confirm
+    message: "This is from config A."
+imports:
+  - config_b.yaml
+`
+	if err := os.WriteFile(configPathA, []byte(configContentA), 0644); err != nil {
+		t.Fatalf("Failed to write config A file: %v", err)
+	}
+	
+	// Create config file B that imports config A (circular)
+	configPathB := filepath.Join(tempDir, "config_b.yaml")
+	configContentB := `
+actions:
+  - danger_level: medium
+    type: timeout
+    message: "This is from config B."
+    timeout: 5
+imports:
+  - config_a.yaml
+`
+	if err := os.WriteFile(configPathB, []byte(configContentB), 0644); err != nil {
+		t.Fatalf("Failed to write config B file: %v", err)
+	}
+	
+	// Test loading the config with circular import
+	_, err := LoadConfig(configPathA)
+	if err == nil {
+		t.Errorf("Expected circular import error, but got nil")
+	} else if matched := "circular import detected"; err.Error() == "" || !contains(err.Error(), matched) {
+		t.Errorf("Expected error message to contain '%s', got: %v", matched, err)
+	}
+}
+
+func TestConfigImportHierarchical(t *testing.T) {
+	// Create a temporary directory
+	tempDir := t.TempDir()
+	
+	// Create top-level config file
+	configPathA := filepath.Join(tempDir, "config_a.yaml")
+	configContentA := `
+actions:
+  - danger_level: high
+    type: confirm
+    message: "This is from config A."
+tools:
+  - name: toolA
+    command:
+      - toolA
+imports:
+  - config_b.yaml
+`
+	if err := os.WriteFile(configPathA, []byte(configContentA), 0644); err != nil {
+		t.Fatalf("Failed to write config A file: %v", err)
+	}
+	
+	// Create middle-level config file
+	configPathB := filepath.Join(tempDir, "config_b.yaml")
+	configContentB := `
+actions:
+  - danger_level: medium
+    type: timeout
+    message: "This is from config B."
+    timeout: 5
+tools:
+  - name: toolB
+    command:
+      - toolB
+imports:
+  - config_c.yaml
+`
+	if err := os.WriteFile(configPathB, []byte(configContentB), 0644); err != nil {
+		t.Fatalf("Failed to write config B file: %v", err)
+	}
+	
+	// Create bottom-level config file
+	configPathC := filepath.Join(tempDir, "config_c.yaml")
+	configContentC := `
+actions:
+  - danger_level: low
+    type: force
+    message: "This is from config C."
+tools:
+  - name: toolC
+    command:
+      - toolC
+`
+	if err := os.WriteFile(configPathC, []byte(configContentC), 0644); err != nil {
+		t.Fatalf("Failed to write config C file: %v", err)
+	}
+	
+	// Test loading the config with hierarchical imports
+	cfg, err := LoadConfig(configPathA)
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+	
+	// Verify combined actions from all configs
+	if len(cfg.Actions) != 3 {
+		t.Errorf("Expected 3 actions, got %d", len(cfg.Actions))
+	}
+	
+	// Verify tools from all configs
+	if len(cfg.Tools) != 3 {
+		t.Errorf("Expected 3 tools, got %d", len(cfg.Tools))
+	}
+	
+	// Check for toolA, toolB, and toolC
+	var hasToolA, hasToolB, hasToolC bool
+	for _, tool := range cfg.Tools {
+		if tool.Name == "toolA" {
+			hasToolA = true
+		} else if tool.Name == "toolB" {
+			hasToolB = true
+		} else if tool.Name == "toolC" {
+			hasToolC = true
+		}
+	}
+	
+	if !hasToolA {
+		t.Errorf("Expected toolA not found")
+	}
+	if !hasToolB {
+		t.Errorf("Expected toolB not found")
+	}
+	if !hasToolC {
+		t.Errorf("Expected toolC not found")
+	}
+}
+
+// Helper function to check if a string contains a substring
+func contains(s, substr string) bool {
+	return strings.Contains(s, substr)
 }

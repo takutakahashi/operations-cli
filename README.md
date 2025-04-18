@@ -139,6 +139,40 @@ ssh:
 
 See `docs/spec.md` for detailed configuration format documentation.
 
+### Configuration Imports
+
+You can import additional configuration files using the `imports` field:
+
+```yaml
+imports:
+  - path/to/another/config.yaml
+  - /absolute/path/to/config.yaml
+  - https://example.com/path/to/config.yaml
+```
+
+When importing configurations:
+- Relative paths are resolved relative to the parent config file
+- Actions are merged (combined) from all imported configs
+- Tools are merged, with the parent config taking precedence for tools with the same name
+- Parent SSH configuration takes precedence over imported SSH configuration
+
+Example:
+
+```yaml
+# Main config.yaml
+actions:
+  - danger_level: high
+    type: confirm
+    # ...
+
+imports:
+  - team/database-tools.yaml
+  - team/network-tools.yaml
+
+tools:
+  # These tools take precedence over tools with the same name in imported configs
+```
+
 ### Tool Configuration
 
 Tools can be configured in two ways: using commands or using shell scripts.
