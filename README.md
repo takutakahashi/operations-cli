@@ -64,6 +64,9 @@ operations kubectl_get_pod --namespace my-namespace
 # Using a specific config file
 operations --config /path/to/config.yaml kubectl_get_pod --namespace my-namespace
 
+# Using a remote config file via HTTP
+operations --config https://example.com/path/to/config.yaml kubectl_get_pod --namespace my-namespace
+
 # Running a subtool with parameters
 operations kubectl_describe_pod --namespace my-namespace --pod my-pod
 
