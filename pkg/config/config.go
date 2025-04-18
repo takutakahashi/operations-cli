@@ -109,47 +109,85 @@ func LoadConfig(configPath string) (*Config, error) {
 
 // loadConfigWithImports loads a configuration file and processes its imports
 func loadConfigWithImports(configPath string, visitedPaths map[string]bool) (*Config, error) {
-	// Convert to absolute path to handle relative imports correctly
-	absPath, err := filepath.Abs(configPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get absolute path for %s: %w", configPath, err)
+	// Check for circular imports using the original path
+	if visitedPaths[configPath] {
+		return nil, fmt.Errorf("circular import detected: %s", configPath)
 	}
 	
-	// Check for circular imports
-	if visitedPaths[absPath] {
-		return nil, fmt.Errorf("circular import detected: %s", absPath)
-	}
-	
-	// Mark this file as visited
-	visitedPaths[absPath] = true
-	
-	// Read the config file
-	data, err := os.ReadFile(absPath)
-	if err != nil {
-		return nil, fmt.Errorf("error reading config file %s: %w", absPath, err)
+	// Mark this file as visited using the original path
+	visitedPaths[configPath] = true
+
+	var data []byte
+	var err error
+
+	// Check if the configPath is an S3 URL
+	if isS3URL(configPath) {
+		// Parse S3 URL to get bucket and key
+		bucket, key, err := parseS3URL(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("invalid S3 URL %s: %w", configPath, err)
+		}
+
+		// Get S3 client
+		client, err := defaultS3Client()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create S3 client: %w", err)
+		}
+
+		// Read the config file from S3
+		data, err = readFromS3(client, bucket, key)
+		if err != nil {
+			return nil, fmt.Errorf("error reading config file from S3 %s: %w", configPath, err)
+		}
+	} else {
+		// For regular file paths, convert to absolute path first
+		absPath, err := filepath.Abs(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get absolute path for %s: %w", configPath, err)
+		}
+		
+		// Read the config file from local filesystem
+		data, err = os.ReadFile(absPath)
+		if err != nil {
+			return nil, fmt.Errorf("error reading config file %s: %w", absPath, err)
+		}
+		// Use absolute path for local files
+		configPath = absPath
 	}
 
 	// Parse the YAML
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("error parsing config file %s: %w", absPath, err)
+		return nil, fmt.Errorf("error parsing config file %s: %w", configPath, err)
 	}
 	
 	// Process imports if present
 	if len(config.Imports) > 0 {
-		// Get the directory of the current config file for relative imports
-		baseDir := filepath.Dir(absPath)
-		
 		for _, importPath := range config.Imports {
-			// If importPath is not an absolute path, make it relative to the current config file
-			if !filepath.IsAbs(importPath) {
-				importPath = filepath.Join(baseDir, importPath)
+			var resolvedImportPath string
+			
+			// Handle import path resolution differently based on source type
+			if isS3URL(configPath) {
+				// For S3 URLs, resolve the import path relative to the S3 base path
+				resolvedImportPath, err = resolveS3ImportPath(configPath, importPath)
+				if err != nil {
+					return nil, fmt.Errorf("failed to resolve S3 import path %s relative to %s: %w", 
+						importPath, configPath, err)
+				}
+			} else {
+				// For regular file paths, resolve the import path relative to the base directory
+				baseDir := filepath.Dir(configPath)
+				if !filepath.IsAbs(importPath) {
+					resolvedImportPath = filepath.Join(baseDir, importPath)
+				} else {
+					resolvedImportPath = importPath
+				}
 			}
 			
 			// Load the imported config
-			importedConfig, err := loadConfigWithImports(importPath, visitedPaths)
+			importedConfig, err := loadConfigWithImports(resolvedImportPath, visitedPaths)
 			if err != nil {
-				return nil, fmt.Errorf("error loading imported config %s: %w", importPath, err)
+				return nil, fmt.Errorf("error loading imported config %s: %w", resolvedImportPath, err)
 			}
 			
 			// Merge the imported config with the current config
