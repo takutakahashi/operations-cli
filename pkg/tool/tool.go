@@ -71,14 +71,15 @@ func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config
 		script = rootTool.Script
 	}
 
-	// Collect all parameters
+	// Create parameters map
 	params := make(map[string]config.Parameter)
-	for name, param := range rootTool.Params {
-		params[name] = param
-	}
 
-	// If we only have the root tool, return it
+	// If we only have the root tool, return all its parameters
 	if len(parts) == 1 {
+		// For root tool, include all parameters
+		for name, param := range rootTool.Params {
+			params[name] = param
+		}
 		return command, script, params, "", nil
 	}
 
@@ -95,6 +96,11 @@ func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config
 			subtoolName := strings.ReplaceAll(currentSubtools[j].Name, " ", "_")
 			if subtoolName == part {
 				currentSubtool = &currentSubtools[j]
+				// parameters from this subtool and referenced parameters
+				if part == parts[len(parts)-1] {
+					params = make(map[string]config.Parameter)
+				}
+				
 				// Add parameters from this level
 				for name, param := range currentSubtool.Params {
 					params[name] = param
