@@ -314,7 +314,7 @@ func TestFindToolWithParamRefs(t *testing.T) {
 	mgr := NewManager(cfg)
 
 	// Test finding root tool with parameters
-	command, script, params, dangerLevel, err := mgr.FindTool("rootcmd")
+	_, script, params, dangerLevel, err := mgr.FindTool("rootcmd")
 	if err != nil {
 		t.Fatalf("FindTool failed for root tool with params: %v", err)
 	}
@@ -326,7 +326,7 @@ func TestFindToolWithParamRefs(t *testing.T) {
 	}
 
 	// Test finding subtool with param_refs
-	command, script, params, dangerLevel, err = mgr.FindTool("rootcmd_subcmd")
+	_, _, params, _, err = mgr.FindTool("rootcmd_subcmd")
 	if err != nil {
 		t.Fatalf("FindTool failed for subtool with param_refs: %v", err)
 	}
@@ -338,7 +338,7 @@ func TestFindToolWithParamRefs(t *testing.T) {
 	}
 
 	// Test finding another subtool with multiple param_refs
-	command, script, params, dangerLevel, err = mgr.FindTool("rootcmd_anothercmd")
+	_, _, params, _, err = mgr.FindTool("rootcmd_anothercmd")
 	if err != nil {
 		t.Fatalf("FindTool failed for subtool with multiple param_refs: %v", err)
 	}
