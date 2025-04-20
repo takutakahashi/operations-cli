@@ -90,16 +90,16 @@ func resolveS3ImportPath(baseURL, importPath string) (string, error) {
 
 	// Get the directory of the base S3 key
 	baseDir := filepath.Dir(key)
-	
+
 	// Resolve the import path relative to the base directory
 	resolvedKey := filepath.Join(baseDir, importPath)
 
 	// Clean up the resolved key (remove unnecessary "./" and handle "../" properly)
 	resolvedKey = filepath.Clean(resolvedKey)
-	
+
 	// Ensure there's no leading slash in the key
 	resolvedKey = strings.TrimPrefix(resolvedKey, "/")
-	
+
 	// Construct the full S3 URL
 	return fmt.Sprintf("s3://%s/%s", bucket, resolvedKey), nil
 }

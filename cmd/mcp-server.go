@@ -1,18 +1,18 @@
-package main
+package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"os"
-	"strings"
 
+	"github.com/spf13/cobra"
 	"github.com/takutakahashi/operation-mcp/pkg/tool"
 )
 
-// CustomMCPServer represents a server that implements the Model Context Protocol
-// for operation-mcp tools.
+// CustomMCPServer は、operation-mcpツールのためのMCPサーバーを表します。
 type CustomMCPServer struct {
 	Name        string
 	Version     string
@@ -20,21 +20,48 @@ type CustomMCPServer struct {
 	ToolManager *tool.Manager
 }
 
-// CustomTool represents an operation-mcp tool exposed as an MCP tool.
+// CustomTool は、MCPサーバーで利用可能なツールを表します。
 type CustomTool struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description,omitempty"`
-	Parameters  map[string]Parameter   `json:"parameters,omitempty"`
-	Required    []string               `json:"required,omitempty"`
+	Name        string               `json:"name"`
+	Description string               `json:"description,omitempty"`
+	Parameters  map[string]Parameter `json:"parameters,omitempty"`
+	Required    []string             `json:"required,omitempty"`
 }
 
-// Parameter represents a parameter for a CustomTool.
+// Parameter は、ツールのパラメータを表します。
 type Parameter struct {
 	Type        string `json:"type"`
 	Description string `json:"description,omitempty"`
 }
 
-// NewCustomMCPServer creates a new CustomMCPServer with the given name, version, and tool manager.
+var mcpServerCmd = &cobra.Command{
+	Use:   "mcp-server",
+	Short: "Start an MCP server for operation-mcp tools",
+	Long: `Start a Model Context Protocol (MCP) server that exposes all operation-mcp tools
+as MCP Tools for LLM applications. The server communicates over stdin/stdout by default.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if toolMgr == nil {
+			fmt.Println("No tools available. Please provide a valid configuration file.")
+			return
+		}
+
+		server := NewCustomMCPServer("operation-mcp", "1.0.0", toolMgr)
+
+		server.RegisterTools()
+
+		fmt.Println("Starting MCP server over stdin/stdout...")
+		if err := server.ServeStdio(); err != nil {
+			log.Fatalf("Server error: %v", err)
+		}
+	},
+}
+
+// AddMCPServerCommand は、rootコマンドにMCPサーバーコマンドを追加します。
+func AddMCPServerCommand(root *cobra.Command) {
+	root.AddCommand(mcpServerCmd)
+}
+
+// NewCustomMCPServer は、新しいCustomMCPServerインスタンスを作成します。
 func NewCustomMCPServer(name, version string, toolMgr *tool.Manager) *CustomMCPServer {
 	return &CustomMCPServer{
 		Name:        name,
@@ -44,7 +71,7 @@ func NewCustomMCPServer(name, version string, toolMgr *tool.Manager) *CustomMCPS
 	}
 }
 
-// RegisterTools registers all tools from the tool manager with the MCP server.
+// RegisterTools は、利用可能な全てのツールをMCPサーバーに登録します。
 func (s *CustomMCPServer) RegisterTools() {
 	tools := s.ToolManager.ListTools()
 	for _, toolInfo := range tools {
@@ -52,6 +79,7 @@ func (s *CustomMCPServer) RegisterTools() {
 	}
 }
 
+// registerTool registers a single tool and its subtools with the MCP server.
 func (s *CustomMCPServer) registerTool(toolInfo tool.Info, parentPath string) {
 	toolPath := toolInfo.Name
 	if parentPath != "" {
@@ -96,16 +124,42 @@ func (s *CustomMCPServer) registerTool(toolInfo tool.Info, parentPath string) {
 	}
 }
 
-// ListTools returns a list of all tools registered with the MCP server.
-func (s *CustomMCPServer) ListTools() []*CustomTool {
-	tools := make([]*CustomTool, 0, len(s.Tools))
-	for _, tool := range s.Tools {
-		tools = append(tools, tool)
+// ServeStdio は、標準入出力を使用してMCPサーバーを起動します。
+func (s *CustomMCPServer) ServeStdio() error {
+	log.Println("Starting MCP server over stdin/stdout")
+
+	decoder := json.NewDecoder(os.Stdin)
+	encoder := json.NewEncoder(os.Stdout)
+
+	for {
+		var request json.RawMessage
+		if err := decoder.Decode(&request); err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			log.Printf("Error reading request: %v", err)
+			continue
+		}
+
+		response, err := s.HandleRequest(request)
+		if err != nil {
+			log.Printf("Error handling request: %v", err)
+			continue
+		}
+
+		var responseObj interface{}
+		if err := json.Unmarshal(response, &responseObj); err != nil {
+			log.Printf("Error unmarshaling response: %v", err)
+			continue
+		}
+
+		if err := encoder.Encode(responseObj); err != nil {
+			log.Printf("Error writing response: %v", err)
+		}
 	}
-	return tools
 }
 
-// HandleRequest handles an MCP request and returns the response.
+// HandleRequest は、クライアントからのリクエストを処理します。
 func (s *CustomMCPServer) HandleRequest(request []byte) ([]byte, error) {
 	var req struct {
 		Method string          `json:"method"`
@@ -126,8 +180,11 @@ func (s *CustomMCPServer) HandleRequest(request []byte) ([]byte, error) {
 }
 
 func (s *CustomMCPServer) handleListTools() ([]byte, error) {
-	tools := s.ListTools()
-	
+	tools := make([]*CustomTool, 0, len(s.Tools))
+	for _, tool := range s.Tools {
+		tools = append(tools, tool)
+	}
+
 	response := struct {
 		Result struct {
 			Tools []*CustomTool `json:"tools"`
@@ -139,7 +196,7 @@ func (s *CustomMCPServer) handleListTools() ([]byte, error) {
 			Tools: tools,
 		},
 	}
-	
+
 	return json.Marshal(response)
 }
 
@@ -181,7 +238,7 @@ func (s *CustomMCPServer) handleCallTool(params json.RawMessage) ([]byte, error)
 		delete(paramValues, "confirm")
 	}
 
-	var stdout strings.Builder
+	var stdout bytes.Buffer
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
@@ -189,7 +246,9 @@ func (s *CustomMCPServer) handleCallTool(params json.RawMessage) ([]byte, error)
 	err = s.ToolManager.ExecuteTool(callParams.Name, paramValues)
 
 	w.Close()
-	io.Copy(&stdout, r)
+	if _, err := io.Copy(&stdout, r); err != nil {
+		return createToolErrorResponse(fmt.Sprintf("Error copying output: %v", err))
+	}
 	os.Stdout = oldStdout
 
 	if err != nil {
@@ -199,48 +258,12 @@ func (s *CustomMCPServer) handleCallTool(params json.RawMessage) ([]byte, error)
 	return createToolSuccessResponse(stdout.String())
 }
 
-// ServeStdio serves the MCP server over stdin/stdout.
-func (s *CustomMCPServer) ServeStdio() error {
-	log.Println("Starting MCP server over stdin/stdout")
-	
-	decoder := json.NewDecoder(os.Stdin)
-	encoder := json.NewEncoder(os.Stdout)
-	
-	for {
-		var request json.RawMessage
-		if err := decoder.Decode(&request); err != nil {
-			if err == io.EOF {
-				return nil
-			}
-			log.Printf("Error reading request: %v", err)
-			continue
-		}
-		
-		response, err := s.HandleRequest(request)
-		if err != nil {
-			log.Printf("Error handling request: %v", err)
-			continue
-		}
-		
-		var responseObj interface{}
-		if err := json.Unmarshal(response, &responseObj); err != nil {
-			log.Printf("Error unmarshaling response: %v", err)
-			continue
-		}
-		
-		if err := encoder.Encode(responseObj); err != nil {
-			log.Printf("Error writing response: %v", err)
-		}
-	}
-}
-
-
 func createErrorResponse(code, message string, err error) ([]byte, error) {
 	errMsg := message
 	if err != nil {
 		errMsg = fmt.Sprintf("%s: %v", message, err)
 	}
-	
+
 	response := struct {
 		Error struct {
 			Code    string `json:"code"`
@@ -255,7 +278,7 @@ func createErrorResponse(code, message string, err error) ([]byte, error) {
 			Message: errMsg,
 		},
 	}
-	
+
 	return json.Marshal(response)
 }
 
@@ -288,7 +311,7 @@ func createToolSuccessResponse(text string) ([]byte, error) {
 			IsError: false,
 		},
 	}
-	
+
 	return json.Marshal(response)
 }
 
@@ -321,6 +344,6 @@ func createToolErrorResponse(text string) ([]byte, error) {
 			IsError: true,
 		},
 	}
-	
+
 	return json.Marshal(response)
 }

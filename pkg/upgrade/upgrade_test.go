@@ -25,7 +25,9 @@ func TestFetchVersions(t *testing.T) {
 			{TagName: "v0.2.0"},
 			{TagName: "v0.1.0"},
 		}
-		json.NewEncoder(w).Encode(mockReleases)
+		if err := json.NewEncoder(w).Encode(mockReleases); err != nil {
+			t.Fatalf("Failed to encode mock releases: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -74,23 +76,27 @@ func TestFetchVersionInfo(t *testing.T) {
 					},
 				},
 			}
-			json.NewEncoder(w).Encode(mockRelease)
+			if err := json.NewEncoder(w).Encode(mockRelease); err != nil {
+				t.Fatalf("Failed to encode mock release: %v", err)
+			}
 			return
 		} else if r.URL.Path == "/repos/testowner/testrepo/releases/tags/v0.2.0" {
 			// Return a mock specific release response
 			w.Header().Set("Content-Type", "application/json")
 			mockRelease := ReleaseInfo{
 				TagName: "v0.2.0",
-				Name:    "Release v0.2.0",
+				Name:    "v0.2.0",
 				Assets: []Asset{
 					{
 						Name:        "operations_v0.2.0_linux_x86_64.tar.gz",
 						DownloadURL: "https://example.com/operations_v0.2.0_linux_x86_64.tar.gz",
-						Size:        900,
+						Size:        1000,
 					},
 				},
 			}
-			json.NewEncoder(w).Encode(mockRelease)
+			if err := json.NewEncoder(w).Encode(mockRelease); err != nil {
+				t.Fatalf("Failed to encode mock release: %v", err)
+			}
 			return
 		}
 

@@ -46,15 +46,15 @@ func TestIsS3URL(t *testing.T) {
 
 func TestParseS3URL(t *testing.T) {
 	testCases := []struct {
-		url           string
+		url            string
 		expectedBucket string
-		expectedKey   string
-		expectError   bool
+		expectedKey    string
+		expectError    bool
 	}{
 		{"s3://my-bucket/path/to/file.yaml", "my-bucket", "path/to/file.yaml", false},
 		{"s3://my-bucket/file.yaml", "my-bucket", "file.yaml", false},
 		{"s3://my-bucket/", "my-bucket", "", false},
-		{"s3://my-bucket", "my-bucket", "", false},  // This should pass now because we handle URLs without trailing slashes
+		{"s3://my-bucket", "my-bucket", "", false}, // This should pass now because we handle URLs without trailing slashes
 		{"file:///path/to/file.yaml", "", "", true},
 		{"/path/to/file.yaml", "", "", true},
 		{"", "", "", true},
@@ -63,7 +63,7 @@ func TestParseS3URL(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.url, func(t *testing.T) {
 			bucket, key, err := parseS3URL(tc.url)
-			
+
 			if tc.expectError {
 				if err == nil {
 					t.Errorf("parseS3URL(%q) = (%q, %q, nil); want error", tc.url, bucket, key)
@@ -85,12 +85,12 @@ func TestParseS3URL(t *testing.T) {
 
 func TestReadFromS3(t *testing.T) {
 	testCases := []struct {
-		name          string
-		bucket        string
-		key           string
-		mockResponse  []byte
-		mockError     error
-		expectError   bool
+		name         string
+		bucket       string
+		key          string
+		mockResponse []byte
+		mockError    error
+		expectError  bool
 	}{
 		{
 			name:         "successful read",
@@ -133,7 +133,7 @@ func TestReadFromS3(t *testing.T) {
 			}
 
 			data, err := readFromS3(mockClient, tc.bucket, tc.key)
-			
+
 			if tc.expectError {
 				if err == nil {
 					t.Errorf("readFromS3() = (%v, nil); want error", data)
@@ -152,11 +152,11 @@ func TestReadFromS3(t *testing.T) {
 
 func TestResolveS3ImportPath(t *testing.T) {
 	testCases := []struct {
-		name           string
-		baseURL        string
-		importPath     string
-		expected       string
-		expectError    bool
+		name        string
+		baseURL     string
+		importPath  string
+		expected    string
+		expectError bool
 	}{
 		{
 			name:        "absolute S3 URL in importPath",
@@ -205,7 +205,7 @@ func TestResolveS3ImportPath(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result, err := resolveS3ImportPath(tc.baseURL, tc.importPath)
-			
+
 			if tc.expectError {
 				if err == nil {
 					t.Errorf("resolveS3ImportPath(%q, %q) = (%q, nil); want error", tc.baseURL, tc.importPath, result)
@@ -259,7 +259,7 @@ tools:
 		getObjectFunc: func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
 			bucket := aws.ToString(params.Bucket)
 			key := aws.ToString(params.Key)
-			
+
 			// Mock different responses based on the requested S3 object
 			switch {
 			case bucket == "test-bucket" && key == "config.yaml":
@@ -275,7 +275,7 @@ tools:
 			}
 		},
 	}
-	
+
 	// Replace the defaultS3Client function with a wrapper that returns our mock
 	originalDefaultS3Client := defaultS3Client
 	defaultS3Client = func() (s3Client, error) {

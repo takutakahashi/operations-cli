@@ -38,6 +38,7 @@ func init() {
 	rootCmd = newRootCmd()
 	AddExecCommand(rootCmd)
 	AddListCommand(rootCmd)
+	AddMCPServerCommand(rootCmd)
 }
 
 func newRootCmd() *cobra.Command {
@@ -161,7 +162,7 @@ func loadConfig() error {
 		} else {
 			// Local file
 			viper.SetConfigFile(configFile)
-			
+
 			// Load config file
 			if err := viper.ReadInConfig(); err != nil {
 				return fmt.Errorf("failed to read config file: %w", err)
@@ -173,7 +174,7 @@ func loadConfig() error {
 		viper.SetConfigType("yaml")
 		viper.AddConfigPath(".")
 		viper.AddConfigPath("$HOME/.operations")
-		
+
 		// Load config file
 		if err := viper.ReadInConfig(); err != nil {
 			if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
@@ -228,24 +229,24 @@ func fetchConfigFromURL(url string) ([]byte, error) {
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
-	
+
 	// リクエストの作成と送信
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	// ステータスコードのチェック
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP request returned status code %d", resp.StatusCode)
 	}
-	
+
 	// レスポンスボディの読み込み
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-	
+
 	return body, nil
 }

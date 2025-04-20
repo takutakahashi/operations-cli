@@ -331,7 +331,9 @@ func Upgrade(owner, repo, version, outputPath string, dryRun bool, force bool) e
 		fmt.Printf("Proceed? [y/N] ")
 
 		var response string
-		fmt.Scanln(&response)
+		if _, err := fmt.Scanln(&response); err != nil {
+			return fmt.Errorf("failed to read user input: %v", err)
+		}
 
 		if strings.ToLower(response) != "y" && strings.ToLower(response) != "yes" {
 			return fmt.Errorf("upgrade aborted by user")

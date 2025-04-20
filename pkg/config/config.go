@@ -111,7 +111,7 @@ func LoadConfig(configPath string) (*Config, error) {
 
 	// Initialize the visited paths map
 	visitedPaths := make(map[string]bool)
-	
+
 	// Load the config with import handling
 	return loadConfigWithImports(configPath, visitedPaths)
 }
@@ -122,7 +122,7 @@ func loadConfigWithImports(configPath string, visitedPaths map[string]bool) (*Co
 	if visitedPaths[configPath] {
 		return nil, fmt.Errorf("circular import detected: %s", configPath)
 	}
-	
+
 	// Mark this file as visited using the original path
 	visitedPaths[configPath] = true
 
@@ -154,7 +154,7 @@ func loadConfigWithImports(configPath string, visitedPaths map[string]bool) (*Co
 		if err != nil {
 			return nil, fmt.Errorf("failed to get absolute path for %s: %w", configPath, err)
 		}
-		
+
 		// Read the config file from local filesystem
 		data, err = os.ReadFile(absPath)
 		if err != nil {
@@ -169,18 +169,18 @@ func loadConfigWithImports(configPath string, visitedPaths map[string]bool) (*Co
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("error parsing config file %s: %w", configPath, err)
 	}
-	
+
 	// Process imports if present
 	if len(config.Imports) > 0 {
 		for _, importPath := range config.Imports {
 			var resolvedImportPath string
-			
+
 			// Handle import path resolution differently based on source type
 			if isS3URL(configPath) {
 				// For S3 URLs, resolve the import path relative to the S3 base path
 				resolvedImportPath, err = resolveS3ImportPath(configPath, importPath)
 				if err != nil {
-					return nil, fmt.Errorf("failed to resolve S3 import path %s relative to %s: %w", 
+					return nil, fmt.Errorf("failed to resolve S3 import path %s relative to %s: %w",
 						importPath, configPath, err)
 				}
 			} else {
@@ -192,22 +192,22 @@ func loadConfigWithImports(configPath string, visitedPaths map[string]bool) (*Co
 					resolvedImportPath = importPath
 				}
 			}
-			
+
 			// Load the imported config
 			importedConfig, err := loadConfigWithImports(resolvedImportPath, visitedPaths)
 			if err != nil {
 				return nil, fmt.Errorf("error loading imported config %s: %w", resolvedImportPath, err)
 			}
-			
+
 			// Merge the imported config with the current config
 			// Current config takes precedence over imported config
 			config = *mergeConfigs(&config, importedConfig)
 		}
 	}
-	
+
 	// Clear the imports field to avoid processing them again
 	config.Imports = nil
-	
+
 	return &config, nil
 }
 

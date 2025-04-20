@@ -58,17 +58,17 @@ func printSubtoolsFlat(subtools []tool.Info, parentPath string, verbose bool) {
 	for _, subtool := range subtools {
 		// Format the full tool path (tool_subtool)
 		fullPath := fmt.Sprintf("%s_%s", parentPath, subtool.Name)
-		
+
 		// Print the full tool path
 		fmt.Printf("%s\n", fullPath)
-		
+
 		// Print parameters if verbose
 		if verbose && len(subtool.Params) > 0 {
 			printParameters(subtool.Params, 1)
 		}
-		
+
 		fmt.Println() // Empty line for readability
-		
+
 		// Recursively print nested subtools
 		nextParentPath := fullPath
 		printSubtoolsFlat(subtool.Subtools, nextParentPath, verbose)
@@ -79,7 +79,7 @@ func printSubtoolsFlat(subtools []tool.Info, parentPath string, verbose bool) {
 func printParameters(params map[string]config.Parameter, indentLevel int) {
 	indent := strings.Repeat("  ", indentLevel)
 	fmt.Printf("%sParameters:\n", indent)
-	
+
 	// Print each parameter with its description
 	for name, param := range params {
 		fmt.Printf("%s  %s: %s", indent, name, param.Description)
