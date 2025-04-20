@@ -54,9 +54,12 @@ fmt:
 	go fmt ./...
 
 # Lint code
-lint:
-	golint ./...
+lint: install-tools
+	golangci-lint run ./...
 
 # Vet code
 vet:
 	go vet ./...
+
+install-tools:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest

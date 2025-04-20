@@ -20,10 +20,10 @@ type CustomMCPServer struct {
 }
 
 type CustomTool struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description,omitempty"`
-	Parameters  map[string]Parameter   `json:"parameters,omitempty"`
-	Required    []string               `json:"required,omitempty"`
+	Name        string               `json:"name"`
+	Description string               `json:"description,omitempty"`
+	Parameters  map[string]Parameter `json:"parameters,omitempty"`
+	Required    []string             `json:"required,omitempty"`
 }
 
 type Parameter struct {
@@ -120,10 +120,10 @@ func (s *CustomMCPServer) registerTool(toolInfo tool.Info, parentPath string) {
 
 func (s *CustomMCPServer) ServeStdio() error {
 	log.Println("Starting MCP server over stdin/stdout")
-	
+
 	decoder := json.NewDecoder(os.Stdin)
 	encoder := json.NewEncoder(os.Stdout)
-	
+
 	for {
 		var request json.RawMessage
 		if err := decoder.Decode(&request); err != nil {
@@ -133,19 +133,19 @@ func (s *CustomMCPServer) ServeStdio() error {
 			log.Printf("Error reading request: %v", err)
 			continue
 		}
-		
+
 		response, err := s.HandleRequest(request)
 		if err != nil {
 			log.Printf("Error handling request: %v", err)
 			continue
 		}
-		
+
 		var responseObj interface{}
 		if err := json.Unmarshal(response, &responseObj); err != nil {
 			log.Printf("Error unmarshaling response: %v", err)
 			continue
 		}
-		
+
 		if err := encoder.Encode(responseObj); err != nil {
 			log.Printf("Error writing response: %v", err)
 		}
@@ -176,7 +176,7 @@ func (s *CustomMCPServer) handleListTools() ([]byte, error) {
 	for _, tool := range s.Tools {
 		tools = append(tools, tool)
 	}
-	
+
 	response := struct {
 		Result struct {
 			Tools []*CustomTool `json:"tools"`
@@ -188,7 +188,7 @@ func (s *CustomMCPServer) handleListTools() ([]byte, error) {
 			Tools: tools,
 		},
 	}
-	
+
 	return json.Marshal(response)
 }
 
@@ -253,7 +253,7 @@ func createErrorResponse(code, message string, err error) ([]byte, error) {
 	if err != nil {
 		errMsg = fmt.Sprintf("%s: %v", message, err)
 	}
-	
+
 	response := struct {
 		Error struct {
 			Code    string `json:"code"`
@@ -268,7 +268,7 @@ func createErrorResponse(code, message string, err error) ([]byte, error) {
 			Message: errMsg,
 		},
 	}
-	
+
 	return json.Marshal(response)
 }
 
@@ -301,7 +301,7 @@ func createToolSuccessResponse(text string) ([]byte, error) {
 			IsError: false,
 		},
 	}
-	
+
 	return json.Marshal(response)
 }
 
@@ -334,6 +334,6 @@ func createToolErrorResponse(text string) ([]byte, error) {
 			IsError: true,
 		},
 	}
-	
+
 	return json.Marshal(response)
 }

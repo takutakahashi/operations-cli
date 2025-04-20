@@ -28,7 +28,7 @@ func TestMCPServerCommand(t *testing.T) {
 	toolMgr = tool.NewManager(cfg)
 
 	rootCmd := &cobra.Command{Use: "test"}
-	
+
 	AddMCPServerCommand(rootCmd)
 
 	mcpCmd, _, err := rootCmd.Find([]string{"mcp-server"})
