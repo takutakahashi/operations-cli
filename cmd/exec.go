@@ -48,7 +48,12 @@ If no subtool is specified, the main tool will be executed.`,
 		if subtoolName != "" {
 			toolPath = fmt.Sprintf("%s_%s", toolName, subtoolName)
 		}
-		return toolMgr.ExecuteTool(toolPath, params)
+		output, err := toolMgr.ExecuteTool(toolPath, params)
+		if err != nil {
+			return err
+		}
+		fmt.Println(output)
+		return nil
 	},
 }
 

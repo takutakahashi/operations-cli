@@ -22,11 +22,20 @@ var (
 func init() {
 	// ログファイルのパスを設定
 	logPath := filepath.Join("./tmp", "operation-mcp.log")
+
+	// ディレクトリが存在しない場合は作成
+	if err := os.MkdirAll(filepath.Dir(logPath), 0755); err != nil {
+		fmt.Printf("Warning: Failed to create log directory: %v\n", err)
+		return
+	}
+
 	var err error
 	logFile, err = os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		fmt.Printf("Error opening log file: %v\n", err)
-		os.Exit(1)
+		fmt.Printf("Warning: Failed to open log file: %v\n", err)
+		// エラー時はstdoutにフォールバック
+		logger = log.New(os.Stdout, "", log.LstdFlags)
+		return
 	}
 
 	// ログの設定
@@ -191,11 +200,13 @@ func executeHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.Call
 	}
 
 	// Execute the tool
-	err := toolMgr.ExecuteTool(toolName, params)
+	output, err := toolMgr.ExecuteTool(toolName, params)
 	if err != nil {
 		logger.Printf("Error executing tool: %v\n", err)
-		return mcp.NewToolResultError(err.Error()), nil
+		// エラー時の出力も含めて返す
+		return mcp.NewToolResultError(fmt.Sprintf("%v\n%s", err, output)), nil
 	}
 
-	return mcp.NewToolResultText("Tool executed successfully"), nil
+	// Return the tool's output
+	return mcp.NewToolResultText(output), nil
 }

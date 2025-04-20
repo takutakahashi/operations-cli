@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -10,6 +12,13 @@ import (
 )
 
 func TestMCPServerCommand(t *testing.T) {
+	// テスト用のログディレクトリを作成
+	tmpDir := filepath.Join(".", "tmp")
+	if err := os.MkdirAll(tmpDir, 0755); err != nil {
+		t.Fatalf("Failed to create tmp directory: %v", err)
+	}
+	defer os.RemoveAll(tmpDir) // テスト終了後にディレクトリを削除
+
 	cfg = &config.Config{
 		Tools: []config.Tool{
 			{
