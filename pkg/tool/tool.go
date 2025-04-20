@@ -26,13 +26,109 @@ type Manager struct {
 	config        *config.Config
 	dangerManager *danger.Manager
 	execInstance  executor.Executor
+	compiledTools map[string]*CompiledTool
+}
+
+// CompiledTool represents a compiled tool
+type CompiledTool struct {
+	Command     []string
+	Script      string
+	Params      map[string]config.Parameter
+	DangerLevel string
 }
 
 // NewManager creates a new tool manager
 func NewManager(cfg *config.Config) *Manager {
-	return &Manager{
+	mgr := &Manager{
 		config:        cfg,
 		dangerManager: danger.NewManager(cfg.Actions),
+		compiledTools: make(map[string]*CompiledTool),
+	}
+
+	// Compile all tools and subtools into flat structure
+	for _, tool := range cfg.Tools {
+		// ルートツール名のスペースをアンダースコアに置換
+		toolName := strings.ReplaceAll(tool.Name, " ", "_")
+		// Compile root tool
+		mgr.compiledTools[toolName] = &CompiledTool{
+			Command: tool.Command,
+			Script:  tool.Script,
+			Params:  tool.Params,
+		}
+
+		// Compile subtools recursively
+		mgr.compileSubtools(toolName, tool.Command, tool.Params, tool.Subtools)
+	}
+
+	return mgr
+}
+
+// compileSubtools recursively compiles subtools into flat structure
+func (m *Manager) compileSubtools(parentPath string, parentCommand []string, parentParams map[string]config.Parameter, subtools []config.Subtool) {
+	for _, subtool := range subtools {
+		// ツール名のスペースをアンダースコアに置換
+		subtoolName := strings.ReplaceAll(subtool.Name, " ", "_")
+		toolPath := parentPath + "_" + subtoolName
+
+		// Create base command
+		var command []string
+		if len(subtool.Args) > 0 {
+			// If this is a leaf subtool (no nested subtools), combine parent command with args
+			if len(subtool.Subtools) == 0 {
+				command = make([]string, len(parentCommand))
+				copy(command, parentCommand)
+				command = append(command, subtool.Args...)
+			} else {
+				// For non-leaf subtools, just use parent command
+				command = make([]string, len(parentCommand))
+				copy(command, parentCommand)
+			}
+		} else {
+			// If subtool has no args, just use parent command
+			command = make([]string, len(parentCommand))
+			copy(command, parentCommand)
+		}
+
+		// Merge parameters
+		params := make(map[string]config.Parameter)
+
+		// Add subtool parameters
+		for name, param := range subtool.Params {
+			params[name] = param
+		}
+
+		// Add explicitly referenced parent parameters
+		for name, paramRef := range subtool.ParamRefs {
+			if param, exists := parentParams[name]; exists {
+				if paramRef.Required {
+					param.Required = true
+				}
+				params[name] = param
+			}
+		}
+
+		// Add implicitly referenced parent parameters (used in Args or Script)
+		if len(subtool.Args) > 0 || subtool.Script != "" {
+			content := strings.Join(subtool.Args, " ") + subtool.Script
+			for name, param := range parentParams {
+				if strings.Contains(content, "{{."+name+"}}") {
+					if _, exists := params[name]; !exists {
+						params[name] = param
+					}
+				}
+			}
+		}
+
+		// Create compiled tool
+		m.compiledTools[toolPath] = &CompiledTool{
+			Command:     command,
+			Script:      subtool.Script,
+			Params:      params,
+			DangerLevel: subtool.DangerLevel,
+		}
+
+		// Recursively compile nested subtools with merged parameters
+		m.compileSubtools(toolPath, command, params, subtool.Subtools)
 	}
 }
 
@@ -43,129 +139,12 @@ func (m *Manager) WithExecutor(exec executor.Executor) {
 
 // FindTool finds a tool by its name
 func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config.Parameter, string, error) {
-	parts := strings.Split(toolPath, "_")
-	if len(parts) < 1 {
-		return nil, "", nil, "", fmt.Errorf("invalid tool path: %s", toolPath)
+	tool, exists := m.compiledTools[toolPath]
+	if !exists {
+		return nil, "", nil, "", fmt.Errorf("tool not found: %s", toolPath)
 	}
 
-	// Find the root tool
-	var rootTool *config.Tool
-	for i := range m.config.Tools {
-		if m.config.Tools[i].Name == parts[0] {
-			rootTool = &m.config.Tools[i]
-			break
-		}
-	}
-
-	if rootTool == nil {
-		return nil, "", nil, "", fmt.Errorf("tool not found: %s", parts[0])
-	}
-
-	// Start with the root tool's command or script
-	command := make([]string, 0)
-	script := ""
-	if len(rootTool.Command) > 0 {
-		command = make([]string, len(rootTool.Command))
-		copy(command, rootTool.Command)
-	} else if rootTool.Script != "" {
-		script = rootTool.Script
-	}
-
-	// Collect all parameters from the root tool
-	params := make(map[string]config.Parameter)
-	for name, param := range rootTool.Params {
-		params[name] = param
-	}
-
-	// If we only have the root tool, return it
-	if len(parts) == 1 {
-		return command, script, params, "", nil
-	}
-
-	// Navigate through the subtool hierarchy
-	currentSubtools := rootTool.Subtools
-	var currentSubtool *config.Subtool
-	dangerLevel := ""
-
-	// For each part of the path after the root tool
-	for _, part := range parts[1:] {
-		found := false
-		// Look for a matching subtool at the current level
-		for j := range currentSubtools {
-			subtoolName := strings.ReplaceAll(currentSubtools[j].Name, " ", "_")
-			if subtoolName == part {
-				currentSubtool = &currentSubtools[j]
-				if part == parts[len(parts)-1] && len(currentSubtool.ParamRefs) > 0 {
-					// Create a new params map with only the referenced parameters
-					finalParams := make(map[string]config.Parameter)
-
-					// Add parameters from this level
-					for name, param := range currentSubtool.Params {
-						finalParams[name] = param
-					}
-
-					// Add only the referenced parameters from the root tool
-					for name, paramRef := range currentSubtool.ParamRefs {
-						if param, exists := rootTool.Params[name]; exists {
-							if paramRef.Required {
-								param.Required = true
-							}
-							finalParams[name] = param
-						}
-					}
-
-					// Replace the params map with the filtered one
-					params = finalParams
-				} else {
-					// Add parameters from this level
-					for name, param := range currentSubtool.Params {
-						params[name] = param
-					}
-
-					// Add parameter references if present
-					for name, paramRef := range currentSubtool.ParamRefs {
-						if param, exists := rootTool.Params[name]; exists {
-							if paramRef.Required {
-								param.Required = true
-							}
-							params[name] = param
-						}
-					}
-				}
-
-				// Update danger level if specified at this level
-				if currentSubtool.DangerLevel != "" {
-					dangerLevel = currentSubtool.DangerLevel
-				}
-
-				// Move to the next level in the hierarchy
-				currentSubtools = currentSubtool.Subtools
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			return nil, "", nil, "", fmt.Errorf("subtool not found: %s in path %s", part, toolPath)
-		}
-	}
-
-	// Now currentSubtool is the deepest subtool we found
-	// Add the args from the final subtool or override script
-	if currentSubtool != nil {
-		if len(currentSubtool.Args) > 0 {
-			command = append(command, currentSubtool.Args...)
-		} else if currentSubtool.Script != "" {
-			// Subtool script overrides tool script if both exist
-			script = currentSubtool.Script
-			// Reset command if script is specified
-			if len(command) > 0 {
-				command = []string{}
-			}
-		}
-	}
-
-	return command, script, params, dangerLevel, nil
+	return tool.Command, tool.Script, tool.Params, tool.DangerLevel, nil
 }
 
 // ExecuteTool executes a tool with the given parameters
@@ -401,19 +380,22 @@ func (m *Manager) ListTools() []Info {
 		return []Info{}
 	}
 
-	result := make([]Info, 0, len(m.config.Tools))
-
-	for _, tool := range m.config.Tools {
-		toolInfo := Info{
-			Name:        tool.Name,
-			Description: "", // Config doesn't have description field for tools
-			Params:      tool.Params,
-			Subtools:    make([]Info, 0, len(tool.Subtools)),
+	result := make([]Info, 0, len(m.compiledTools))
+	for path, tool := range m.compiledTools {
+		// デバッグログの出力
+		if os.Getenv("OM_DEBUG") == "true" {
+			fmt.Printf("[DEBUG] Tool: %s\n", path)
+			fmt.Printf("[DEBUG]   Command: %v\n", tool.Command)
+			fmt.Printf("[DEBUG]   Script: %s\n", tool.Script)
+			fmt.Printf("[DEBUG]   Params: %v\n", tool.Params)
+			fmt.Printf("[DEBUG]   DangerLevel: %s\n", tool.DangerLevel)
 		}
 
-		// Add subtools recursively
-		for _, subtool := range tool.Subtools {
-			toolInfo.Subtools = append(toolInfo.Subtools, convertSubtoolToInfo(subtool, tool.Name))
+		toolInfo := Info{
+			Name:        path, // 完全なパスを名前として使用
+			Description: "",   // Config doesn't have description field for tools
+			Params:      tool.Params,
+			Subtools:    []Info{}, // フラット化された構造なので空
 		}
 
 		result = append(result, toolInfo)
