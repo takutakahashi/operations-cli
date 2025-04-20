@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.6.9](https://github.com/takutakahashi/operation-mcp/compare/v0.6.8...v0.6.9) - 2025-04-20
+- MCP Server Design Document by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/62
+- MCP Server Implementation by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/64
+- Implement MCP server as a cobra subcommand by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/65
+
 ## [v0.6.8](https://github.com/takutakahashi/operation-mcp/compare/v0.6.7...v0.6.8) - 2025-04-20
 - issue #57: パラメータ定義をrootツールに移動し、サブツールは参照するよう変更 by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/58
 - Add e2e test for param_refs feature by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/60
