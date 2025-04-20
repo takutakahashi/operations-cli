@@ -419,6 +419,7 @@ func convertSubtoolToInfo(subtool config.Subtool, parentName string) Info {
 	return toolInfo
 }
 
+// GetConfig returns the configuration used by this manager
 func (m *Manager) GetConfig() *config.Config {
 	return m.config
 }
