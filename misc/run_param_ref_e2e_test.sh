@@ -48,7 +48,7 @@ else
 fi
 
 echo -e "\n${GREEN}Test 5: Sleep short command (low danger level)${NC}"
-${OPERATIONS_BIN} exec sleep_short
+${OPERATIONS_BIN} exec sleep_short --set seconds=1
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 5 passed${NC}"
 else
