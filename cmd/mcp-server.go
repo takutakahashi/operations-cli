@@ -66,6 +66,7 @@ func NewCustomMCPServer(name, version string, toolMgr *tool.Manager) *CustomMCPS
 	}
 }
 
+// RegisterTools registers all tools from the tool manager with the MCP server.
 func (s *CustomMCPServer) RegisterTools() {
 	tools := s.ToolManager.ListTools()
 	for _, toolInfo := range tools {
