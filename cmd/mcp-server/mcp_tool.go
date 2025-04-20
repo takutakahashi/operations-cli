@@ -6,44 +6,45 @@ import (
 	"github.com/takutakahashi/operation-mcp/pkg/tool"
 )
 
-func createMCPTool(name string, toolInfo tool.Info) *mcp.Tool {
-	mcpTool := &mcp.Tool{
-		Name:        name,
-		Description: toolInfo.Description,
-		Parameters:  make(map[string]*mcp.Parameter),
+func createMCPTool(name string, toolInfo tool.Info) mcp.Tool {
+	toolOpts := []mcp.ToolOption{
+		mcp.WithDescription(toolInfo.Description),
 	}
 
 	for paramName, param := range toolInfo.Params {
-		paramType := "string"
-		switch param.Type {
-		case "number", "integer":
-			paramType = "number"
-		case "boolean":
-			paramType = "boolean"
-		}
-
 		description := paramName
 		if param.Description != "" {
 			description = param.Description
 		}
 
-		mcpTool.Parameters[paramName] = &mcp.Parameter{
-			Type:        paramType,
-			Description: description,
+		var paramOpt mcp.ToolOption
+		switch param.Type {
+		case "number", "integer":
+			paramOpt = mcp.WithNumber(paramName, mcp.Description(description))
+		case "boolean":
+			paramOpt = mcp.WithBoolean(paramName, mcp.Description(description))
+		default:
+			paramOpt = mcp.WithString(paramName, mcp.Description(description))
 		}
 
 		if param.Required {
-			getRequiredOption(true)(mcpTool.Parameters[paramName])
-		} else {
-			getRequiredOption(false)(mcpTool.Parameters[paramName])
+			switch param.Type {
+			case "number", "integer":
+				paramOpt = mcp.WithNumber(paramName, mcp.Description(description), mcp.Required())
+			case "boolean":
+				paramOpt = mcp.WithBoolean(paramName, mcp.Description(description), mcp.Required())
+			default:
+				paramOpt = mcp.WithString(paramName, mcp.Description(description), mcp.Required())
+			}
 		}
+
+		toolOpts = append(toolOpts, paramOpt)
 	}
 
-	return mcpTool
+	return mcp.NewTool(name, toolOpts...)
 }
 
 func getRequiredOption(required bool) func(*mcp.Parameter) {
 	return func(p *mcp.Parameter) {
-		p.Required = required
 	}
 }
