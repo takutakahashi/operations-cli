@@ -143,6 +143,11 @@ func TestConfigValidate(t *testing.T) {
 					{
 						Name: "get pod",
 						Args: []string{"get", "pod", "-o", "json", "-n", "{{.namespace}}"},
+						ParamRefs: map[string]ParamRef{
+							"namespace": {
+								Required: true,
+							},
+						},
 					},
 				},
 			},
