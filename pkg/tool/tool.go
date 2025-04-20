@@ -95,13 +95,34 @@ func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config
 			subtoolName := strings.ReplaceAll(currentSubtools[j].Name, " ", "_")
 			if subtoolName == part {
 				currentSubtool = &currentSubtools[j]
-				// Add parameters from this level
-				for name, param := range currentSubtool.Params {
-					params[name] = param
-				}
-
-				// Handle parameter references if present
-				if len(currentSubtool.ParamRefs) > 0 {
+				if part == parts[len(parts)-1] && len(currentSubtool.ParamRefs) > 0 {
+					// Create a new params map with only the referenced parameters
+					finalParams := make(map[string]config.Parameter)
+					
+					// Add parameters from this level
+					for name, param := range currentSubtool.Params {
+						finalParams[name] = param
+					}
+					
+					// Add only the referenced parameters from the root tool
+					for name, paramRef := range currentSubtool.ParamRefs {
+						if param, exists := rootTool.Params[name]; exists {
+							if paramRef.Required {
+								param.Required = true
+							}
+							finalParams[name] = param
+						}
+					}
+					
+					// Replace the params map with the filtered one
+					params = finalParams
+				} else {
+					// Add parameters from this level
+					for name, param := range currentSubtool.Params {
+						params[name] = param
+					}
+					
+					// Add parameter references if present
 					for name, paramRef := range currentSubtool.ParamRefs {
 						if param, exists := rootTool.Params[name]; exists {
 							if paramRef.Required {
