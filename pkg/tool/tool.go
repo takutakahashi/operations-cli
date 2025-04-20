@@ -148,11 +148,11 @@ func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config
 }
 
 // ExecuteTool executes a tool with the given parameters
-func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) error {
+func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (string, error) {
 	// Find the tool
 	command, script, params, dangerLevel, err := m.FindTool(toolPath)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Validate required parameters
@@ -160,7 +160,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) er
 		if param.Required {
 			value, exists := paramValues[name]
 			if !exists || value == "" {
-				return fmt.Errorf("required parameter missing: %s", name)
+				return "", fmt.Errorf("required parameter missing: %s", name)
 			}
 		}
 	}
@@ -177,10 +177,10 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) er
 					param.Validate,
 				)
 				if err != nil {
-					return err
+					return "", err
 				}
 				if !proceed {
-					return fmt.Errorf("operation aborted due to danger level check")
+					return "", fmt.Errorf("operation aborted due to danger level check")
 				}
 			}
 		}
@@ -190,10 +190,10 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) er
 	if dangerLevel != "" {
 		proceed, err := m.dangerManager.CheckDangerLevel(dangerLevel, "", "", nil)
 		if err != nil {
-			return err
+			return "", err
 		}
 		if !proceed {
-			return fmt.Errorf("operation aborted due to danger level check")
+			return "", fmt.Errorf("operation aborted due to danger level check")
 		}
 	}
 
@@ -209,12 +209,12 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) er
 		if strings.Contains(arg, "{{") {
 			tmpl, err := template.New("arg").Parse(arg)
 			if err != nil {
-				return fmt.Errorf("error parsing template in argument: %w", err)
+				return "", fmt.Errorf("error parsing template in argument: %w", err)
 			}
 
 			var buf bytes.Buffer
 			if err := tmpl.Execute(&buf, paramValues); err != nil {
-				return fmt.Errorf("error executing template in argument: %w", err)
+				return "", fmt.Errorf("error executing template in argument: %w", err)
 			}
 
 			finalCommand[i] = buf.String()
@@ -226,25 +226,28 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) er
 	// Execute the command
 	fmt.Printf("Executing: %s\n", strings.Join(finalCommand, " "))
 	cmd := exec.Command(finalCommand[0], finalCommand[1:]...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	return cmd.Run()
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("error executing command: %w\noutput: %s", err, string(output))
+	}
+
+	return string(output), nil
 }
 
 // executeScript executes a script with the given parameters
-func executeScript(script string, paramValues map[string]string) error {
+func executeScript(script string, paramValues map[string]string) (string, error) {
 	// Replace template parameters in script
 	if strings.Contains(script, "{{") {
 		tmpl, err := template.New("script").Parse(script)
 		if err != nil {
-			return fmt.Errorf("error parsing template in script: %w", err)
+			return "", fmt.Errorf("error parsing template in script: %w", err)
 		}
 
 		var buf bytes.Buffer
 		if err := tmpl.Execute(&buf, paramValues); err != nil {
-			return fmt.Errorf("error executing template in script: %w", err)
+			return "", fmt.Errorf("error executing template in script: %w", err)
 		}
 
 		script = buf.String()
@@ -253,23 +256,23 @@ func executeScript(script string, paramValues map[string]string) error {
 	// Create a temporary file for the script
 	tmpFile, err := os.CreateTemp("", "operation-mcp-*.sh")
 	if err != nil {
-		return fmt.Errorf("error creating temporary script file: %w", err)
+		return "", fmt.Errorf("error creating temporary script file: %w", err)
 	}
 	defer os.Remove(tmpFile.Name()) // Clean up temp file when done
 
 	// Write script content to the temporary file
 	if _, err := tmpFile.WriteString(script); err != nil {
-		return fmt.Errorf("error writing script to temporary file: %w", err)
+		return "", fmt.Errorf("error writing script to temporary file: %w", err)
 	}
 
 	// Close the file before execution
 	if err := tmpFile.Close(); err != nil {
-		return fmt.Errorf("error closing temporary script file: %w", err)
+		return "", fmt.Errorf("error closing temporary script file: %w", err)
 	}
 
 	// Make the script file executable
 	if err := os.Chmod(tmpFile.Name(), 0755); err != nil {
-		return fmt.Errorf("error making script file executable: %w", err)
+		return "", fmt.Errorf("error making script file executable: %w", err)
 	}
 
 	// Execute the script
@@ -277,19 +280,22 @@ func executeScript(script string, paramValues map[string]string) error {
 
 	// Run the script with bash to ensure compatibility
 	cmd := exec.Command("/bin/bash", tmpFile.Name())
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	return cmd.Run()
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("error executing script: %w\noutput: %s", err, string(output))
+	}
+
+	return string(output), nil
 }
 
 // ExecuteRawTool executes a tool with the given raw arguments
-func (m *Manager) ExecuteRawTool(toolPath string, args []string) error {
+func (m *Manager) ExecuteRawTool(toolPath string, args []string) (string, error) {
 	// Find the tool and subtool
 	command, script, params, dangerLevel, err := m.FindTool(toolPath)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Extract parameter values from the command-line arguments
@@ -321,10 +327,10 @@ func (m *Manager) ExecuteRawTool(toolPath string, args []string) error {
 	if dangerLevel != "" {
 		proceed, err := m.dangerManager.CheckDangerLevel(dangerLevel, "", "", nil)
 		if err != nil {
-			return err
+			return "", err
 		}
 		if !proceed {
-			return fmt.Errorf("operation aborted due to danger level check")
+			return "", fmt.Errorf("operation aborted due to danger level check")
 		}
 	}
 
@@ -333,7 +339,7 @@ func (m *Manager) ExecuteRawTool(toolPath string, args []string) error {
 		if param.Required {
 			value, exists := paramValues[name]
 			if !exists || value == "" {
-				return fmt.Errorf("required parameter missing: %s", name)
+				return "", fmt.Errorf("required parameter missing: %s", name)
 			}
 		}
 	}
@@ -350,12 +356,12 @@ func (m *Manager) ExecuteRawTool(toolPath string, args []string) error {
 		if strings.Contains(arg, "{{") {
 			tmpl, err := template.New("arg").Parse(arg)
 			if err != nil {
-				return fmt.Errorf("error parsing template in argument: %w", err)
+				return "", fmt.Errorf("error parsing template in argument: %w", err)
 			}
 
 			var buf bytes.Buffer
 			if err := tmpl.Execute(&buf, paramValues); err != nil {
-				return fmt.Errorf("error executing template in argument: %w", err)
+				return "", fmt.Errorf("error executing template in argument: %w", err)
 			}
 
 			finalCommand[i] = buf.String()
@@ -367,11 +373,14 @@ func (m *Manager) ExecuteRawTool(toolPath string, args []string) error {
 	// Execute the command
 	fmt.Printf("Executing: %s\n", strings.Join(finalCommand, " "))
 	cmd := exec.Command(finalCommand[0], finalCommand[1:]...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	return cmd.Run()
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("error executing command: %w\noutput: %s", err, string(output))
+	}
+
+	return string(output), nil
 }
 
 // ListTools returns all tools and subtools defined in the config
@@ -391,9 +400,13 @@ func (m *Manager) ListTools() []Info {
 			fmt.Printf("[DEBUG]   DangerLevel: %s\n", tool.DangerLevel)
 		}
 
+		// パスから名前を取得（最後の_以降）
+		parts := strings.Split(path, "_")
+		name := strings.ReplaceAll(parts[len(parts)-1], " ", "_")
+
 		toolInfo := Info{
-			Name:        path, // 完全なパスを名前として使用
-			Description: "",   // Config doesn't have description field for tools
+			Name:        name,
+			Description: "", // Config doesn't have description field for tools
 			Params:      tool.Params,
 			Subtools:    []Info{}, // フラット化された構造なので空
 		}
@@ -404,27 +417,12 @@ func (m *Manager) ListTools() []Info {
 	return result
 }
 
-// convertSubtoolToInfo converts a subtool configuration to Info structure
-func convertSubtoolToInfo(subtool config.Subtool, parentName string) Info {
-	name := strings.ReplaceAll(subtool.Name, " ", "_")
-
-	toolInfo := Info{
-		Name:        name,
-		Description: "", // Config doesn't have description field for subtools
-		Params:      subtool.Params,
-		Subtools:    make([]Info, 0, len(subtool.Subtools)),
-	}
-
-	// Add nested subtools recursively
-	for _, nested := range subtool.Subtools {
-		toolInfo.Subtools = append(toolInfo.Subtools,
-			convertSubtoolToInfo(nested, parentName+"_"+name))
-	}
-
-	return toolInfo
-}
-
 // GetConfig returns the configuration used by this manager
 func (m *Manager) GetConfig() *config.Config {
 	return m.config
+}
+
+// GetCompiledTools returns the compiled tools map
+func (m *Manager) GetCompiledTools() map[string]*CompiledTool {
+	return m.compiledTools
 }

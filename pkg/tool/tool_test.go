@@ -401,43 +401,43 @@ func TestExecuteRawTool(t *testing.T) {
 	mgr := NewManager(cfg)
 
 	// Test executing a valid subtool
-	err := mgr.ExecuteRawTool("echo_hello", []string{"--message=World"})
+	_, err := mgr.ExecuteRawTool("echo_hello", []string{"--message=World"})
 	if err != nil {
 		t.Fatalf("ExecuteRawTool failed for echo_hello: %v", err)
 	}
 
 	// Test executing another valid subtool
-	err = mgr.ExecuteRawTool("echo_goodbye", []string{"--message=World"})
+	_, err = mgr.ExecuteRawTool("echo_goodbye", []string{"--message=World"})
 	if err != nil {
 		t.Fatalf("ExecuteRawTool failed for echo_goodbye: %v", err)
 	}
 
 	// Test executing a script tool
-	err = mgr.ExecuteRawTool("script-echo", []string{"--message=ScriptWorld"})
+	_, err = mgr.ExecuteRawTool("script-echo", []string{"--message=ScriptWorld"})
 	if err != nil {
 		t.Fatalf("ExecuteRawTool failed for script-echo: %v", err)
 	}
 
 	// Test executing with invalid tool path
-	err = mgr.ExecuteRawTool("nonexistent", []string{})
+	_, err = mgr.ExecuteRawTool("nonexistent", []string{})
 	if err == nil {
 		t.Errorf("ExecuteRawTool should fail for non-existent tool")
 	}
 
 	// Test executing with invalid subtool
-	err = mgr.ExecuteRawTool("echo_invalid", []string{})
+	_, err = mgr.ExecuteRawTool("echo_invalid", []string{})
 	if err == nil {
 		t.Errorf("ExecuteRawTool should fail for non-existent subtool")
 	}
 
 	// Test executing without required parameter
-	err = mgr.ExecuteRawTool("echo_hello", []string{})
+	_, err = mgr.ExecuteRawTool("echo_hello", []string{})
 	if err == nil {
 		t.Errorf("ExecuteRawTool should fail when required parameter is missing")
 	}
 
 	// Test executing script without required parameter
-	err = mgr.ExecuteRawTool("script-echo", []string{})
+	_, err = mgr.ExecuteRawTool("script-echo", []string{})
 	if err == nil {
 		t.Errorf("ExecuteRawTool should fail when required script parameter is missing")
 	}

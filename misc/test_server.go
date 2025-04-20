@@ -16,8 +16,7 @@ func main() {
 		}
 		w.Header().Set("Content-Type", "application/x-yaml")
 		if _, err := w.Write(data); err != nil {
-			http.Error(w, "Failed to write response", http.StatusInternalServerError)
-			return
+			log.Fatalf("Failed to write response: %v", err)
 		}
 	})
 

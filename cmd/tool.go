@@ -16,10 +16,12 @@ func createToolCommand(tool config.Tool) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			// Execute the tool
 			paramValues := getParamValues(cmd, tool.Params)
-			if err := toolMgr.ExecuteTool(tool.Name, paramValues); err != nil {
+			output, err := toolMgr.ExecuteTool(tool.Name, paramValues)
+			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
+			fmt.Println(output)
 		},
 	}
 
@@ -50,10 +52,12 @@ func createSubtoolCommand(parentName string, subtool config.Subtool) *cobra.Comm
 					}
 				}
 			}
-			if err := toolMgr.ExecuteTool(parentName+"_"+subtool.Name, paramValues); err != nil {
+			output, err := toolMgr.ExecuteTool(parentName+"_"+subtool.Name, paramValues)
+			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
+			fmt.Println(output)
 		},
 	}
 
