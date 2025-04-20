@@ -12,6 +12,7 @@ import (
 	"github.com/takutakahashi/operation-mcp/pkg/tool"
 )
 
+// CustomMCPServer は、operation-mcpツールのためのMCPサーバーを表します。
 type CustomMCPServer struct {
 	Name        string
 	Version     string
@@ -19,6 +20,7 @@ type CustomMCPServer struct {
 	ToolManager *tool.Manager
 }
 
+// CustomTool は、MCPサーバーで利用可能なツールを表します。
 type CustomTool struct {
 	Name        string               `json:"name"`
 	Description string               `json:"description,omitempty"`
@@ -26,6 +28,7 @@ type CustomTool struct {
 	Required    []string             `json:"required,omitempty"`
 }
 
+// Parameter は、ツールのパラメータを表します。
 type Parameter struct {
 	Type        string `json:"type"`
 	Description string `json:"description,omitempty"`
@@ -53,10 +56,12 @@ as MCP Tools for LLM applications. The server communicates over stdin/stdout by 
 	},
 }
 
+// AddMCPServerCommand は、rootコマンドにMCPサーバーコマンドを追加します。
 func AddMCPServerCommand(root *cobra.Command) {
 	root.AddCommand(mcpServerCmd)
 }
 
+// NewCustomMCPServer は、新しいCustomMCPServerインスタンスを作成します。
 func NewCustomMCPServer(name, version string, toolMgr *tool.Manager) *CustomMCPServer {
 	return &CustomMCPServer{
 		Name:        name,
@@ -66,6 +71,7 @@ func NewCustomMCPServer(name, version string, toolMgr *tool.Manager) *CustomMCPS
 	}
 }
 
+// RegisterTools は、利用可能な全てのツールをMCPサーバーに登録します。
 func (s *CustomMCPServer) RegisterTools() {
 	tools := s.ToolManager.ListTools()
 	for _, toolInfo := range tools {
@@ -118,6 +124,7 @@ func (s *CustomMCPServer) registerTool(toolInfo tool.Info, parentPath string) {
 	}
 }
 
+// ServeStdio は、標準入出力を使用してMCPサーバーを起動します。
 func (s *CustomMCPServer) ServeStdio() error {
 	log.Println("Starting MCP server over stdin/stdout")
 
@@ -152,6 +159,7 @@ func (s *CustomMCPServer) ServeStdio() error {
 	}
 }
 
+// HandleRequest は、クライアントからのリクエストを処理します。
 func (s *CustomMCPServer) HandleRequest(request []byte) ([]byte, error) {
 	var req struct {
 		Method string          `json:"method"`
