@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/takutakahashi/operation-mcp/pkg/config"
 	"github.com/takutakahashi/operation-mcp/pkg/tool"
 )
 
