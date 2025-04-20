@@ -2,18 +2,34 @@ package cmd
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"os"
-	"strings"
 
-	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/spf13/cobra"
 	"github.com/takutakahashi/operation-mcp/pkg/tool"
 )
+
+type CustomMCPServer struct {
+	Name        string
+	Version     string
+	Tools       map[string]*CustomTool
+	ToolManager *tool.Manager
+}
+
+type CustomTool struct {
+	Name        string                 `json:"name"`
+	Description string                 `json:"description,omitempty"`
+	Parameters  map[string]Parameter   `json:"parameters,omitempty"`
+	Required    []string               `json:"required,omitempty"`
+}
+
+type Parameter struct {
+	Type        string `json:"type"`
+	Description string `json:"description,omitempty"`
+}
 
 var mcpServerCmd = &cobra.Command{
 	Use:   "mcp-server",
@@ -26,12 +42,12 @@ as MCP Tools for LLM applications. The server communicates over stdin/stdout by 
 			return
 		}
 
-		server := mcp.NewServer("operation-mcp", "1.0.0")
+		server := NewCustomMCPServer("operation-mcp", "1.0.0", toolMgr)
 
-		registerTools(server, toolMgr)
+		server.RegisterTools()
 
 		fmt.Println("Starting MCP server over stdin/stdout...")
-		if err := server.ServeStdio(context.Background()); err != nil {
+		if err := server.ServeStdio(); err != nil {
 			log.Fatalf("Server error: %v", err)
 		}
 	},
@@ -41,72 +57,157 @@ func AddMCPServerCommand(root *cobra.Command) {
 	root.AddCommand(mcpServerCmd)
 }
 
-func registerTools(server *mcp.Server, toolMgr *tool.Manager) {
-	tools := toolMgr.ListTools()
-	for _, toolInfo := range tools {
-		registerTool(server, toolMgr, toolInfo, "")
+func NewCustomMCPServer(name, version string, toolMgr *tool.Manager) *CustomMCPServer {
+	return &CustomMCPServer{
+		Name:        name,
+		Version:     version,
+		Tools:       make(map[string]*CustomTool),
+		ToolManager: toolMgr,
 	}
 }
 
-func registerTool(server *mcp.Server, toolMgr *tool.Manager, toolInfo tool.Info, parentPath string) {
+func (s *CustomMCPServer) RegisterTools() {
+	tools := s.ToolManager.ListTools()
+	for _, toolInfo := range tools {
+		s.registerTool(toolInfo, "")
+	}
+}
+
+// registerTool registers a single tool and its subtools with the MCP server.
+func (s *CustomMCPServer) registerTool(toolInfo tool.Info, parentPath string) {
 	toolPath := toolInfo.Name
 	if parentPath != "" {
 		toolPath = parentPath + "_" + toolInfo.Name
 	}
 
-	mcpTool := createMCPTool(toolPath, toolInfo)
-
-	server.RegisterTool(mcpTool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		return handleToolCall(ctx, req, toolMgr, toolPath)
-	})
-
-	for _, subtool := range toolInfo.Subtools {
-		registerTool(server, toolMgr, subtool, toolPath)
-	}
-}
-
-func createMCPTool(name string, toolInfo tool.Info) mcp.Tool {
-	toolOpts := []mcp.ToolOption{
-		mcp.WithDescription(toolInfo.Description),
+	customTool := &CustomTool{
+		Name:        toolPath,
+		Description: toolInfo.Description,
+		Parameters:  make(map[string]Parameter),
+		Required:    []string{},
 	}
 
-	for paramName, param := range toolInfo.Params {
-		description := paramName
+	for name, param := range toolInfo.Params {
+		paramDesc := name
 		if param.Description != "" {
-			description = param.Description
+			paramDesc = param.Description
 		}
 
-		var paramOpt mcp.ToolOption
+		paramType := "string"
 		switch param.Type {
 		case "number", "integer":
-			if param.Required {
-				paramOpt = mcp.WithNumber(paramName, mcp.Description(description), mcp.Required())
-			} else {
-				paramOpt = mcp.WithNumber(paramName, mcp.Description(description))
-			}
+			paramType = "number"
 		case "boolean":
-			if param.Required {
-				paramOpt = mcp.WithBoolean(paramName, mcp.Description(description), mcp.Required())
-			} else {
-				paramOpt = mcp.WithBoolean(paramName, mcp.Description(description))
-			}
-		default:
-			if param.Required {
-				paramOpt = mcp.WithString(paramName, mcp.Description(description), mcp.Required())
-			} else {
-				paramOpt = mcp.WithString(paramName, mcp.Description(description))
-			}
+			paramType = "boolean"
 		}
 
-		toolOpts = append(toolOpts, paramOpt)
+		customTool.Parameters[name] = Parameter{
+			Type:        paramType,
+			Description: paramDesc,
+		}
+
+		if param.Required {
+			customTool.Required = append(customTool.Required, name)
+		}
 	}
 
-	return mcp.NewTool(name, toolOpts...)
+	s.Tools[toolPath] = customTool
+
+	for _, subtool := range toolInfo.Subtools {
+		s.registerTool(subtool, toolPath)
+	}
 }
 
-func handleToolCall(ctx context.Context, request mcp.CallToolRequest, toolMgr *tool.Manager, toolPath string) (*mcp.CallToolResult, error) {
+func (s *CustomMCPServer) ServeStdio() error {
+	log.Println("Starting MCP server over stdin/stdout")
+	
+	decoder := json.NewDecoder(os.Stdin)
+	encoder := json.NewEncoder(os.Stdout)
+	
+	for {
+		var request json.RawMessage
+		if err := decoder.Decode(&request); err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			log.Printf("Error reading request: %v", err)
+			continue
+		}
+		
+		response, err := s.HandleRequest(request)
+		if err != nil {
+			log.Printf("Error handling request: %v", err)
+			continue
+		}
+		
+		var responseObj interface{}
+		if err := json.Unmarshal(response, &responseObj); err != nil {
+			log.Printf("Error unmarshaling response: %v", err)
+			continue
+		}
+		
+		if err := encoder.Encode(responseObj); err != nil {
+			log.Printf("Error writing response: %v", err)
+		}
+	}
+}
+
+func (s *CustomMCPServer) HandleRequest(request []byte) ([]byte, error) {
+	var req struct {
+		Method string          `json:"method"`
+		Params json.RawMessage `json:"params"`
+	}
+	if err := json.Unmarshal(request, &req); err != nil {
+		return createErrorResponse("invalid_request", "Failed to parse request", err)
+	}
+
+	switch req.Method {
+	case "tools/list":
+		return s.handleListTools()
+	case "tools/call":
+		return s.handleCallTool(req.Params)
+	default:
+		return createErrorResponse("method_not_found", fmt.Sprintf("Method not supported: %s", req.Method), nil)
+	}
+}
+
+func (s *CustomMCPServer) handleListTools() ([]byte, error) {
+	tools := make([]*CustomTool, 0, len(s.Tools))
+	for _, tool := range s.Tools {
+		tools = append(tools, tool)
+	}
+	
+	response := struct {
+		Result struct {
+			Tools []*CustomTool `json:"tools"`
+		} `json:"result"`
+	}{
+		Result: struct {
+			Tools []*CustomTool `json:"tools"`
+		}{
+			Tools: tools,
+		},
+	}
+	
+	return json.Marshal(response)
+}
+
+func (s *CustomMCPServer) handleCallTool(params json.RawMessage) ([]byte, error) {
+	var callParams struct {
+		Name      string                 `json:"name"`
+		Arguments map[string]interface{} `json:"arguments"`
+	}
+	if err := json.Unmarshal(params, &callParams); err != nil {
+		return createErrorResponse("invalid_params", "Failed to parse tool call parameters", err)
+	}
+
+	_, exists := s.Tools[callParams.Name]
+	if !exists {
+		return createErrorResponse("tool_not_found", fmt.Sprintf("Tool not found: %s", callParams.Name), nil)
+	}
+
 	paramValues := make(map[string]string)
-	for name, value := range request.Params.Arguments {
+	for name, value := range callParams.Arguments {
 		switch v := value.(type) {
 		case string:
 			paramValues[name] = v
@@ -119,17 +220,12 @@ func handleToolCall(ctx context.Context, request mcp.CallToolRequest, toolMgr *t
 		}
 	}
 
-	_, _, _, dangerLevel, err := toolMgr.FindTool(toolPath)
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("Tool not found: %v", err)), nil
-	}
-
-	if dangerLevel == "high" {
-		confirm, ok := request.Params.Arguments["confirm"].(bool)
+	_, _, _, dangerLevel, err := s.ToolManager.FindTool(callParams.Name)
+	if err == nil && dangerLevel == "high" {
+		confirm, ok := callParams.Arguments["confirm"].(bool)
 		if !ok || !confirm {
-			return mcp.NewToolResultError(
-				"This tool has a high danger level and requires explicit confirmation. " +
-					"Please confirm by calling this tool with an additional 'confirm: true' parameter."), nil
+			return createToolErrorResponse("This tool has a high danger level and requires explicit confirmation. " +
+				"Please confirm by calling this tool with an additional 'confirm: true' parameter.")
 		}
 		delete(paramValues, "confirm")
 	}
@@ -139,15 +235,105 @@ func handleToolCall(ctx context.Context, request mcp.CallToolRequest, toolMgr *t
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	err = toolMgr.ExecuteTool(toolPath, paramValues)
+	err = s.ToolManager.ExecuteTool(callParams.Name, paramValues)
 
 	w.Close()
 	io.Copy(&stdout, r)
 	os.Stdout = oldStdout
 
 	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("Error executing tool: %v\nOutput: %s", err, stdout.String())), nil
+		return createToolErrorResponse(fmt.Sprintf("Error executing tool: %v\nOutput: %s", err, stdout.String()))
 	}
 
-	return mcp.NewToolResultText(stdout.String()), nil
+	return createToolSuccessResponse(stdout.String())
+}
+
+func createErrorResponse(code, message string, err error) ([]byte, error) {
+	errMsg := message
+	if err != nil {
+		errMsg = fmt.Sprintf("%s: %v", message, err)
+	}
+	
+	response := struct {
+		Error struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}{
+		Error: struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		}{
+			Code:    code,
+			Message: errMsg,
+		},
+	}
+	
+	return json.Marshal(response)
+}
+
+func createToolSuccessResponse(text string) ([]byte, error) {
+	response := struct {
+		Result struct {
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+			IsError bool `json:"isError"`
+		} `json:"result"`
+	}{
+		Result: struct {
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+			IsError bool `json:"isError"`
+		}{
+			Content: []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			}{
+				{
+					Type: "text",
+					Text: text,
+				},
+			},
+			IsError: false,
+		},
+	}
+	
+	return json.Marshal(response)
+}
+
+func createToolErrorResponse(text string) ([]byte, error) {
+	response := struct {
+		Result struct {
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+			IsError bool `json:"isError"`
+		} `json:"result"`
+	}{
+		Result: struct {
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+			IsError bool `json:"isError"`
+		}{
+			Content: []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			}{
+				{
+					Type: "text",
+					Text: text,
+				},
+			},
+			IsError: true,
+		},
+	}
+	
+	return json.Marshal(response)
 }
