@@ -25,6 +25,11 @@ func TestFindTool(t *testing.T) {
 					{
 						Name: "get",
 						Args: []string{"get", "pod", "-o", "json", "-n", "{{.namespace}}"},
+						ParamRefs: map[string]config.ParamRef{
+							"namespace": {
+								Required: true,
+							},
+						},
 					},
 					{
 						Name: "describe",
@@ -256,6 +261,95 @@ func TestFindTool(t *testing.T) {
 	_, _, _, _, err = mgr.FindTool("parent_child_nonexistent")
 	if err == nil {
 		t.Errorf("FindTool should fail for non-existent nested subtool")
+	}
+}
+
+func TestFindToolWithParamRefs(t *testing.T) {
+	// Create a test config with root tools containing params and subtools with param_refs
+	cfg := &config.Config{
+		Tools: []config.Tool{
+			{
+				Name:    "rootcmd",
+				Command: []string{"rootcmd"},
+				Params: map[string]config.Parameter{
+					"global-param": {
+						Description: "A global parameter",
+						Type:        "string",
+						Required:    false,
+					},
+					"optional-param": {
+						Description: "An optional parameter",
+						Type:        "string",
+						Required:    false,
+					},
+				},
+				Subtools: []config.Subtool{
+					{
+						Name: "subcmd",
+						Args: []string{"subcmd", "{{.global-param}}"},
+						ParamRefs: map[string]config.ParamRef{
+							"global-param": {
+								Required: true, // Override to make it required for this subtool
+							},
+						},
+					},
+					{
+						Name: "anothercmd",
+						Args: []string{"anothercmd", "{{.global-param}}", "{{.optional-param}}"},
+						ParamRefs: map[string]config.ParamRef{
+							"global-param": {
+								Required: true,
+							},
+							"optional-param": {
+								Required: false, // Keep it optional
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Create a tool manager
+	mgr := NewManager(cfg)
+
+	// Test finding root tool with parameters
+	command, script, params, dangerLevel, err := mgr.FindTool("rootcmd")
+	if err != nil {
+		t.Fatalf("FindTool failed for root tool with params: %v", err)
+	}
+	if len(params) != 2 {
+		t.Errorf("Expected 2 parameters, got %d", len(params))
+	}
+	if param, exists := params["global-param"]; !exists || param.Required {
+		t.Errorf("Expected global-param to exist and be not required at root level")
+	}
+
+	// Test finding subtool with param_refs
+	command, script, params, dangerLevel, err = mgr.FindTool("rootcmd_subcmd")
+	if err != nil {
+		t.Fatalf("FindTool failed for subtool with param_refs: %v", err)
+	}
+	if len(params) != 1 {
+		t.Errorf("Expected 1 parameter, got %d", len(params))
+	}
+	if param, exists := params["global-param"]; !exists || !param.Required {
+		t.Errorf("Expected global-param to exist and be required for subtool")
+	}
+
+	// Test finding another subtool with multiple param_refs
+	command, script, params, dangerLevel, err = mgr.FindTool("rootcmd_anothercmd")
+	if err != nil {
+		t.Fatalf("FindTool failed for subtool with multiple param_refs: %v", err)
+	}
+	if len(params) != 2 {
+		t.Errorf("Expected 2 parameters, got %d", len(params))
+	}
+	if param, exists := params["global-param"]; !exists || !param.Required {
+		t.Errorf("Expected global-param to exist and be required")
+	}
+	if param, exists := params["optional-param"]; !exists || param.Required {
+		t.Errorf("Expected optional-param to exist and be not required")
 	}
 }
 

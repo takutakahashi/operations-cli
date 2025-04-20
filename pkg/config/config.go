@@ -41,6 +41,7 @@ type Subtool struct {
 	Params      Parameters `yaml:"params"`
 	DangerLevel string     `yaml:"danger_level"`
 	Subtools    []Subtool  `yaml:"subtools"`
+	ParamRefs   ParamRefs  `yaml:"param_refs,omitempty"`
 }
 
 // Parameter represents a parameter configuration
@@ -59,6 +60,13 @@ type Validation struct {
 
 // Parameters is a map of parameter name to Parameter
 type Parameters map[string]Parameter
+
+type ParamRef struct {
+	Required bool `yaml:"required"`
+}
+
+// ParamRefs is a map of parameter name to ParamRef
+type ParamRefs map[string]ParamRef
 
 // SSHConfig represents SSH connection configuration
 type SSHConfig struct {

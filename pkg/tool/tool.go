@@ -100,6 +100,16 @@ func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config
 					params[name] = param
 				}
 
+				// Add parameters referenced by this subtool
+				for name, paramRef := range currentSubtool.ParamRefs {
+					if param, exists := rootTool.Params[name]; exists {
+						if paramRef.Required {
+							param.Required = true
+						}
+						params[name] = param
+					}
+				}
+
 				// Update danger level if specified at this level
 				if currentSubtool.DangerLevel != "" {
 					dangerLevel = currentSubtool.DangerLevel
@@ -407,4 +417,8 @@ func convertSubtoolToInfo(subtool config.Subtool, parentName string) Info {
 	}
 
 	return toolInfo
+}
+
+func (m *Manager) GetConfig() *config.Config {
+	return m.config
 }
