@@ -20,10 +20,10 @@ type CustomMCPServer struct {
 }
 
 type CustomTool struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description,omitempty"`
-	Parameters  map[string]Parameter   `json:"parameters,omitempty"`
-	Required    []string               `json:"required,omitempty"`
+	Name        string               `json:"name"`
+	Description string               `json:"description,omitempty"`
+	Parameters  map[string]Parameter `json:"parameters,omitempty"`
+	Required    []string             `json:"required,omitempty"`
 }
 
 type Parameter struct {
