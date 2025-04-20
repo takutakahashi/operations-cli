@@ -391,9 +391,13 @@ func (m *Manager) ListTools() []Info {
 			fmt.Printf("[DEBUG]   DangerLevel: %s\n", tool.DangerLevel)
 		}
 
+		// パスから名前を取得（最後の_以降）
+		parts := strings.Split(path, "_")
+		name := strings.ReplaceAll(parts[len(parts)-1], " ", "_")
+
 		toolInfo := Info{
-			Name:        path, // 完全なパスを名前として使用
-			Description: "",   // Config doesn't have description field for tools
+			Name:        name,
+			Description: "", // Config doesn't have description field for tools
 			Params:      tool.Params,
 			Subtools:    []Info{}, // フラット化された構造なので空
 		}
@@ -427,4 +431,9 @@ func convertSubtoolToInfo(subtool config.Subtool, parentName string) Info {
 // GetConfig returns the configuration used by this manager
 func (m *Manager) GetConfig() *config.Config {
 	return m.config
+}
+
+// GetCompiledTools returns the compiled tools map
+func (m *Manager) GetCompiledTools() map[string]*CompiledTool {
+	return m.compiledTools
 }
