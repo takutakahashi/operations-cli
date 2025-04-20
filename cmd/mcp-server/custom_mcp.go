@@ -11,6 +11,8 @@ import (
 	"github.com/takutakahashi/operation-mcp/pkg/tool"
 )
 
+// CustomMCPServer represents a server that implements the Model Context Protocol
+// for operation-mcp tools.
 type CustomMCPServer struct {
 	Name        string
 	Version     string
@@ -18,6 +20,7 @@ type CustomMCPServer struct {
 	ToolManager *tool.Manager
 }
 
+// CustomTool represents an operation-mcp tool exposed as an MCP tool.
 type CustomTool struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description,omitempty"`
@@ -25,11 +28,13 @@ type CustomTool struct {
 	Required    []string               `json:"required,omitempty"`
 }
 
+// Parameter represents a parameter for a CustomTool.
 type Parameter struct {
 	Type        string `json:"type"`
 	Description string `json:"description,omitempty"`
 }
 
+// NewCustomMCPServer creates a new CustomMCPServer with the given name, version, and tool manager.
 func NewCustomMCPServer(name, version string, toolMgr *tool.Manager) *CustomMCPServer {
 	return &CustomMCPServer{
 		Name:        name,
@@ -39,6 +44,7 @@ func NewCustomMCPServer(name, version string, toolMgr *tool.Manager) *CustomMCPS
 	}
 }
 
+// RegisterTools registers all tools from the tool manager with the MCP server.
 func (s *CustomMCPServer) RegisterTools() {
 	tools := s.ToolManager.ListTools()
 	for _, toolInfo := range tools {
@@ -90,6 +96,7 @@ func (s *CustomMCPServer) registerTool(toolInfo tool.Info, parentPath string) {
 	}
 }
 
+// ListTools returns a list of all tools registered with the MCP server.
 func (s *CustomMCPServer) ListTools() []*CustomTool {
 	tools := make([]*CustomTool, 0, len(s.Tools))
 	for _, tool := range s.Tools {
@@ -98,6 +105,7 @@ func (s *CustomMCPServer) ListTools() []*CustomTool {
 	return tools
 }
 
+// HandleRequest handles an MCP request and returns the response.
 func (s *CustomMCPServer) HandleRequest(request []byte) ([]byte, error) {
 	var req struct {
 		Method string          `json:"method"`
@@ -191,6 +199,7 @@ func (s *CustomMCPServer) handleCallTool(params json.RawMessage) ([]byte, error)
 	return createToolSuccessResponse(stdout.String())
 }
 
+// ServeStdio serves the MCP server over stdin/stdout.
 func (s *CustomMCPServer) ServeStdio() error {
 	log.Println("Starting MCP server over stdin/stdout")
 	
