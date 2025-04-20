@@ -15,10 +15,7 @@ func main() {
 			return
 		}
 		w.Header().Set("Content-Type", "application/x-yaml")
-		if _, err := w.Write(data); err != nil {
-			http.Error(w, "Failed to write response", http.StatusInternalServerError)
-			return
-		}
+		w.Write(data)
 	})
 
 	port := "8080"
