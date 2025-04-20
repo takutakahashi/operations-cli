@@ -44,7 +44,6 @@ func createMCPTool(name string, toolInfo tool.Info) mcp.Tool {
 	return mcp.NewTool(name, toolOpts...)
 }
 
-func getRequiredOption(required bool) func(*mcp.Parameter) {
-	return func(p *mcp.Parameter) {
-	}
+func getRequiredOption(required bool) interface{} {
+	return nil
 }
