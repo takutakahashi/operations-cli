@@ -62,46 +62,12 @@ as MCP Tools for LLM applications. The server communicates over stdin/stdout by 
 
 		// Register all tools from compiledTools
 		for toolPath, compiledTool := range toolMgr.GetCompiledTools() {
-			// Create tool options
-			opts := []mcp.ToolOption{
-				mcp.WithDescription(""),
+			toolInfo := tool.Info{
+				Name:        toolPath,
+				Description: "",
+				Params:      compiledTool.Params,
 			}
-
-			// Add parameters
-			for name, param := range compiledTool.Params {
-				paramDesc := name
-				if param.Description != "" {
-					paramDesc = param.Description
-				}
-
-				var paramOpt mcp.ToolOption
-				switch param.Type {
-				case "number", "integer":
-					if param.Required {
-						paramOpt = mcp.WithNumber(name, mcp.Description(paramDesc), mcp.Required())
-					} else {
-						paramOpt = mcp.WithNumber(name, mcp.Description(paramDesc))
-					}
-				case "boolean":
-					if param.Required {
-						paramOpt = mcp.WithBoolean(name, mcp.Description(paramDesc), mcp.Required())
-					} else {
-						paramOpt = mcp.WithBoolean(name, mcp.Description(paramDesc))
-					}
-				default:
-					if param.Required {
-						paramOpt = mcp.WithString(name, mcp.Description(paramDesc), mcp.Required())
-					} else {
-						paramOpt = mcp.WithString(name, mcp.Description(paramDesc))
-					}
-				}
-
-				opts = append(opts, paramOpt)
-			}
-
-			// Create and register the tool
-			t := mcp.NewTool(toolPath, opts...)
-			s.AddTool(t, executeHandler)
+			registerTool(s, toolInfo, "")
 		}
 
 		// Start the stdio server

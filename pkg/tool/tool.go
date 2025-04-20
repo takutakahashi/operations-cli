@@ -417,26 +417,6 @@ func (m *Manager) ListTools() []Info {
 	return result
 }
 
-// convertSubtoolToInfo converts a subtool configuration to Info structure
-func convertSubtoolToInfo(subtool config.Subtool, parentName string) Info {
-	name := strings.ReplaceAll(subtool.Name, " ", "_")
-
-	toolInfo := Info{
-		Name:        name,
-		Description: "", // Config doesn't have description field for subtools
-		Params:      subtool.Params,
-		Subtools:    make([]Info, 0, len(subtool.Subtools)),
-	}
-
-	// Add nested subtools recursively
-	for _, nested := range subtool.Subtools {
-		toolInfo.Subtools = append(toolInfo.Subtools,
-			convertSubtoolToInfo(nested, parentName+"_"+name))
-	}
-
-	return toolInfo
-}
-
 // GetConfig returns the configuration used by this manager
 func (m *Manager) GetConfig() *config.Config {
 	return m.config
