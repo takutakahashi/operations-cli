@@ -1,7 +1,8 @@
-.PHONY: build test clean
+.PHONY: build test clean build-mcp-server
 
 # Variables
 BINARY_NAME=operations
+MCP_SERVER_NAME=mcp-server
 BUILD_DIR=build
 GO_FILES=$(shell find . -name "*.go" -type f)
 
@@ -14,6 +15,13 @@ build: $(BUILD_DIR)/$(BINARY_NAME)
 $(BUILD_DIR)/$(BINARY_NAME): $(GO_FILES)
 	@mkdir -p $(BUILD_DIR)
 	go build -o $(BUILD_DIR)/$(BINARY_NAME) .
+
+# Build the MCP server
+build-mcp-server: $(BUILD_DIR)/$(MCP_SERVER_NAME)
+
+$(BUILD_DIR)/$(MCP_SERVER_NAME): $(GO_FILES)
+	@mkdir -p $(BUILD_DIR)
+	go build -o $(BUILD_DIR)/$(MCP_SERVER_NAME) ./cmd/mcp-server
 
 # Run tests
 test:
@@ -32,6 +40,10 @@ clean:
 # Install the application
 install: build
 	cp $(BUILD_DIR)/$(BINARY_NAME) /usr/local/bin/
+
+# Install the MCP server
+install-mcp-server: build-mcp-server
+	cp $(BUILD_DIR)/$(MCP_SERVER_NAME) /usr/local/bin/
 
 # Run the application with example config
 run-example: build
