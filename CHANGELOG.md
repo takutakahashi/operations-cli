@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.6.8](https://github.com/takutakahashi/operation-mcp/compare/v0.6.7...v0.6.8) - 2025-04-20
+- issue #57: パラメータ定義をrootツールに移動し、サブツールは参照するよう変更 by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/58
+- Add e2e test for param_refs feature by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/60
+- Fix E2E test by adding required seconds parameter to sleep_short command by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/61
+
 ## [v0.6.7](https://github.com/takutakahashi/operation-mcp/compare/v0.6.6...v0.6.7) - 2025-04-18
 - feat: Add S3 remote configuration support by @kommon-ai in https://github.com/takutakahashi/operation-mcp/pull/55
 
