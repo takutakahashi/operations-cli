@@ -344,7 +344,7 @@ tools:
 	}
 
 	// Verify imports field is cleared
-	if cfg.Imports != nil && len(cfg.Imports) > 0 {
+	if len(cfg.Imports) > 0 {
 		t.Errorf("Imports should be cleared after processing")
 	}
 }

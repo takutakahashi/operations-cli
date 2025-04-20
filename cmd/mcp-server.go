@@ -238,7 +238,9 @@ func (s *CustomMCPServer) handleCallTool(params json.RawMessage) ([]byte, error)
 	err = s.ToolManager.ExecuteTool(callParams.Name, paramValues)
 
 	w.Close()
-	io.Copy(&stdout, r)
+	if _, err := io.Copy(&stdout, r); err != nil {
+		return createToolErrorResponse(fmt.Sprintf("Error copying output: %v", err))
+	}
 	os.Stdout = oldStdout
 
 	if err != nil {

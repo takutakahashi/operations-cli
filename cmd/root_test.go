@@ -15,11 +15,13 @@ func TestFetchConfigFromURL(t *testing.T) {
 	// テスト用のサーバーを作成
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/x-yaml")
-		w.Write([]byte(`
+		if _, err := w.Write([]byte(`
 tools:
   - name: test-tool
     command: ["echo", "test"]
-`))
+`)); err != nil {
+			t.Fatalf("Failed to write response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -43,11 +45,13 @@ func TestLoadConfigFromURL(t *testing.T) {
 	// テスト用のサーバーを作成
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/x-yaml")
-		w.Write([]byte(`
+		if _, err := w.Write([]byte(`
 tools:
   - name: test-tool
     command: ["echo", "test"]
-`))
+`)); err != nil {
+			t.Fatalf("Failed to write response: %v", err)
+		}
 	}))
 	defer server.Close()
 
