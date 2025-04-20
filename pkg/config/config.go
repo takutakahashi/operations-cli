@@ -61,6 +61,7 @@ type Validation struct {
 // Parameters is a map of parameter name to Parameter
 type Parameters map[string]Parameter
 
+// ParamRef represents a reference to a parameter defined in the root tool
 type ParamRef struct {
 	Required bool `yaml:"required"`
 }
