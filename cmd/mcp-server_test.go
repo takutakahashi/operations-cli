@@ -13,9 +13,8 @@ func TestMCPServerCommand(t *testing.T) {
 	cfg = &config.Config{
 		Tools: []config.Tool{
 			{
-				Name:        "test",
-				Description: "Test tool",
-				Command:     "echo 'test'",
+				Name:    "test",
+				Command: []string{"echo", "test"},
 				Params: map[string]config.Parameter{
 					"param1": {
 						Description: "Test parameter",
