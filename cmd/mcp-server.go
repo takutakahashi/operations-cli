@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/takutakahashi/operation-mcp/pkg/tool"
