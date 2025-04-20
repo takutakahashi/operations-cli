@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.6.10](https://github.com/takutakahashi/operation-mcp/compare/v0.6.9...v0.6.10) - 2025-04-20
+- Init manager by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/68
+- Use mcp go by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/69
+
 ## [v0.6.9](https://github.com/takutakahashi/operation-mcp/compare/v0.6.8...v0.6.9) - 2025-04-20
 - MCP Server Design Document by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/62
 - MCP Server Implementation by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/64
