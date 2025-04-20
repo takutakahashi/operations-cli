@@ -1,0 +1,61 @@
+actions:
+  - danger_level: low
+    type: confirm
+    message: "This is a low-risk operation. Proceed?"
+  - danger_level: medium
+    type: confirm
+    message: "This is a medium-risk operation. Are you sure you want to proceed?"
+  - danger_level: high
+    type: confirm
+    message: "This is a high-risk operation. Please confirm carefully before proceeding."
+
+tools:
+  - name: command
+    command:
+      - echo
+    params:
+      message:
+        description: The message to echo
+        type: string
+        required: true
+      prefix:
+        description: Prefix for the message
+        type: string
+        required: false
+    subtools:
+      - name: hello
+        args: ["{{.prefix}}Hello, {{.message}}!"]
+        param_refs:
+          message:
+            required: true
+          prefix:
+            required: false
+      - name: goodbye
+        args: ["{{.prefix}}Goodbye, {{.message}}!"]
+        param_refs:
+          message:
+            required: true
+          prefix:
+            required: false
+  
+  - name: sleep
+    command:
+      - sleep
+    params:
+      seconds:
+        description: The number of seconds to sleep
+        type: string
+        required: true
+    subtools:
+      - name: short
+        args: ["1"]
+        danger_level: low
+      - name: medium
+        args: ["3"]
+        danger_level: medium
+      - name: long
+        args: ["{{.seconds}}"]
+        danger_level: high
+        param_refs:
+          seconds:
+            required: true
