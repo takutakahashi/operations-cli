@@ -47,15 +47,17 @@ func NewManager(cfg *config.Config) *Manager {
 
 	// Compile all tools and subtools into flat structure
 	for _, tool := range cfg.Tools {
+		// ルートツール名のスペースをアンダースコアに置換
+		toolName := strings.ReplaceAll(tool.Name, " ", "_")
 		// Compile root tool
-		mgr.compiledTools[tool.Name] = &CompiledTool{
+		mgr.compiledTools[toolName] = &CompiledTool{
 			Command: tool.Command,
 			Script:  tool.Script,
 			Params:  tool.Params,
 		}
 
 		// Compile subtools recursively
-		mgr.compileSubtools(tool.Name, tool.Command, tool.Params, tool.Subtools)
+		mgr.compileSubtools(toolName, tool.Command, tool.Params, tool.Subtools)
 	}
 
 	return mgr
@@ -64,7 +66,9 @@ func NewManager(cfg *config.Config) *Manager {
 // compileSubtools recursively compiles subtools into flat structure
 func (m *Manager) compileSubtools(parentPath string, parentCommand []string, parentParams map[string]config.Parameter, subtools []config.Subtool) {
 	for _, subtool := range subtools {
-		toolPath := parentPath + "_" + subtool.Name
+		// ツール名のスペースをアンダースコアに置換
+		subtoolName := strings.ReplaceAll(subtool.Name, " ", "_")
+		toolPath := parentPath + "_" + subtoolName
 
 		// Create base command
 		var command []string
@@ -376,19 +380,26 @@ func (m *Manager) ListTools() []Info {
 		return []Info{}
 	}
 
-	result := make([]Info, 0, len(m.config.Tools))
-
-	for _, tool := range m.config.Tools {
-		toolInfo := Info{
-			Name:        tool.Name,
-			Description: "", // Config doesn't have description field for tools
-			Params:      tool.Params,
-			Subtools:    make([]Info, 0, len(tool.Subtools)),
+	result := make([]Info, 0, len(m.compiledTools))
+	for path, tool := range m.compiledTools {
+		// デバッグログの出力
+		if os.Getenv("OM_DEBUG") == "true" {
+			fmt.Printf("[DEBUG] Tool: %s\n", path)
+			fmt.Printf("[DEBUG]   Command: %v\n", tool.Command)
+			fmt.Printf("[DEBUG]   Script: %s\n", tool.Script)
+			fmt.Printf("[DEBUG]   Params: %v\n", tool.Params)
+			fmt.Printf("[DEBUG]   DangerLevel: %s\n", tool.DangerLevel)
 		}
 
-		// Add subtools recursively
-		for _, subtool := range tool.Subtools {
-			toolInfo.Subtools = append(toolInfo.Subtools, convertSubtoolToInfo(subtool, tool.Name))
+		// パスから名前を取得（最後の_以降）
+		parts := strings.Split(path, "_")
+		name := strings.ReplaceAll(parts[len(parts)-1], " ", "_")
+
+		toolInfo := Info{
+			Name:        name,
+			Description: "", // Config doesn't have description field for tools
+			Params:      tool.Params,
+			Subtools:    []Info{}, // フラット化された構造なので空
 		}
 
 		result = append(result, toolInfo)
