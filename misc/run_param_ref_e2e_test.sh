@@ -57,7 +57,7 @@ else
 fi
 
 echo -e "\n${GREEN}Test 6: Sleep medium command (medium danger level)${NC}"
-echo "y" | ${OPERATIONS_BIN} exec sleep_medium
+echo "y" | ${OPERATIONS_BIN} exec sleep_medium --set seconds=3
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Test 6 passed${NC}"
 else
