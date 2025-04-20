@@ -314,7 +314,7 @@ func TestFindToolWithParamRefs(t *testing.T) {
 	mgr := NewManager(cfg)
 
 	// Test finding root tool with parameters
-	_, script, params, dangerLevel, err := mgr.FindTool("rootcmd")
+	_, _, params, _, err := mgr.FindTool("rootcmd")
 	if err != nil {
 		t.Fatalf("FindTool failed for root tool with params: %v", err)
 	}
