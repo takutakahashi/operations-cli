@@ -44,6 +44,10 @@ func createMCPTool(name string, toolInfo tool.Info) mcp.Tool {
 	return mcp.NewTool(name, toolOpts...)
 }
 
-func getRequiredOption(required bool) interface{} {
-	return nil
+func getRequiredOption(required bool) mcp.PropertyOption {
+	if required {
+		return mcp.Required()
+	}
+	return func(schema map[string]interface{}) {
+	}
 }

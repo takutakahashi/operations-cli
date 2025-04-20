@@ -36,72 +36,104 @@ func TestCreateMCPTool(t *testing.T) {
 		t.Errorf("Expected tool name to be 'test-tool', got '%s'", mcpTool.Name)
 	}
 
-	params := mcpTool.Parameters
-	if len(params) != 3 {
-		t.Errorf("Expected 3 parameters, got %d", len(params))
+	if mcpTool.InputSchema.Type != "object" {
+		t.Errorf("Expected input schema type to be 'object', got '%s'", mcpTool.InputSchema.Type)
 	}
 
-	stringParam, ok := params["string-param"]
-	if !ok {
-		t.Errorf("Expected parameter 'string-param' to exist")
-	} else {
-		if stringParam.Type != "string" {
-			t.Errorf("Expected parameter type to be 'string', got '%s'", stringParam.Type)
-		}
-		if !stringParam.Required {
-			t.Errorf("Expected parameter to be required")
-		}
-		if stringParam.Description != "A string parameter" {
-			t.Errorf("Expected parameter description to be 'A string parameter', got '%s'", stringParam.Description)
-		}
+	properties := mcpTool.InputSchema.Properties
+	if len(properties) != 3 {
+		t.Errorf("Expected 3 properties, got %d", len(properties))
 	}
 
-	numberParam, ok := params["number-param"]
+	stringProp, ok := properties["string-param"]
 	if !ok {
-		t.Errorf("Expected parameter 'number-param' to exist")
+		t.Errorf("Expected property 'string-param' to exist")
 	} else {
-		if numberParam.Type != "number" {
-			t.Errorf("Expected parameter type to be 'number', got '%s'", numberParam.Type)
-		}
-		if numberParam.Required {
-			t.Errorf("Expected parameter to be optional")
-		}
-		if numberParam.Description != "A number parameter" {
-			t.Errorf("Expected parameter description to be 'A number parameter', got '%s'", numberParam.Description)
+		propMap, ok := stringProp.(map[string]interface{})
+		if !ok {
+			t.Errorf("Expected property to be a map")
+		} else {
+			if propType, ok := propMap["type"].(string); !ok || propType != "string" {
+				t.Errorf("Expected property type to be 'string', got '%v'", propMap["type"])
+			}
+			if desc, ok := propMap["description"].(string); !ok || desc != "A string parameter" {
+				t.Errorf("Expected property description to be 'A string parameter', got '%v'", propMap["description"])
+			}
 		}
 	}
 
-	boolParam, ok := params["bool-param"]
+	numberProp, ok := properties["number-param"]
 	if !ok {
-		t.Errorf("Expected parameter 'bool-param' to exist")
+		t.Errorf("Expected property 'number-param' to exist")
 	} else {
-		if boolParam.Type != "boolean" {
-			t.Errorf("Expected parameter type to be 'boolean', got '%s'", boolParam.Type)
+		propMap, ok := numberProp.(map[string]interface{})
+		if !ok {
+			t.Errorf("Expected property to be a map")
+		} else {
+			if propType, ok := propMap["type"].(string); !ok || propType != "number" {
+				t.Errorf("Expected property type to be 'number', got '%v'", propMap["type"])
+			}
+			if desc, ok := propMap["description"].(string); !ok || desc != "A number parameter" {
+				t.Errorf("Expected property description to be 'A number parameter', got '%v'", propMap["description"])
+			}
 		}
-		if !boolParam.Required {
-			t.Errorf("Expected parameter to be required")
+	}
+
+	boolProp, ok := properties["bool-param"]
+	if !ok {
+		t.Errorf("Expected property 'bool-param' to exist")
+	} else {
+		propMap, ok := boolProp.(map[string]interface{})
+		if !ok {
+			t.Errorf("Expected property to be a map")
+		} else {
+			if propType, ok := propMap["type"].(string); !ok || propType != "boolean" {
+				t.Errorf("Expected property type to be 'boolean', got '%v'", propMap["type"])
+			}
+			if desc, ok := propMap["description"].(string); !ok || desc != "A boolean parameter" {
+				t.Errorf("Expected property description to be 'A boolean parameter', got '%v'", propMap["description"])
+			}
 		}
-		if boolParam.Description != "A boolean parameter" {
-			t.Errorf("Expected parameter description to be 'A boolean parameter', got '%s'", boolParam.Description)
+	}
+
+	required := mcpTool.InputSchema.Required
+	if len(required) != 2 {
+		t.Errorf("Expected 2 required parameters, got %d", len(required))
+	}
+
+	foundStringParam := false
+	foundBoolParam := false
+	for _, r := range required {
+		if r == "string-param" {
+			foundStringParam = true
 		}
+		if r == "bool-param" {
+			foundBoolParam = true
+		}
+	}
+
+	if !foundStringParam {
+		t.Errorf("Expected 'string-param' to be required")
+	}
+	if !foundBoolParam {
+		t.Errorf("Expected 'bool-param' to be required")
 	}
 }
 
 func TestGetRequiredOption(t *testing.T) {
-	requiredOption := getRequiredOption(true)
-	optionalOption := getRequiredOption(false)
-
-	requiredParam := &mcp.Parameter{}
-	optionalParam := &mcp.Parameter{}
-
-	requiredOption(requiredParam)
-	optionalOption(optionalParam)
-
-	if !requiredParam.Required {
-		t.Errorf("Expected parameter to be required")
+	requiredTool := mcp.NewTool("test-tool")
+	mcp.WithString("required-param", mcp.Required())(&requiredTool)
+	
+	optionalTool := mcp.NewTool("test-tool")
+	mcp.WithString("optional-param")(&optionalTool)
+	
+	if len(requiredTool.InputSchema.Required) != 1 {
+		t.Errorf("Expected 1 required parameter, got %d", len(requiredTool.InputSchema.Required))
+	} else if requiredTool.InputSchema.Required[0] != "required-param" {
+		t.Errorf("Expected required parameter name to be 'required-param', got '%s'", requiredTool.InputSchema.Required[0])
 	}
-
-	if optionalParam.Required {
-		t.Errorf("Expected parameter to be optional")
+	
+	if len(optionalTool.InputSchema.Required) != 0 {
+		t.Errorf("Expected 0 required parameters, got %d", len(optionalTool.InputSchema.Required))
 	}
 }
