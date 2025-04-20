@@ -391,13 +391,9 @@ func (m *Manager) ListTools() []Info {
 			fmt.Printf("[DEBUG]   DangerLevel: %s\n", tool.DangerLevel)
 		}
 
-		// パスから名前を取得（最後の_以降）
-		parts := strings.Split(path, "_")
-		name := strings.ReplaceAll(parts[len(parts)-1], " ", "_")
-
 		toolInfo := Info{
-			Name:        name,
-			Description: "", // Config doesn't have description field for tools
+			Name:        path, // 完全なパスを名前として使用
+			Description: "",   // Config doesn't have description field for tools
 			Params:      tool.Params,
 			Subtools:    []Info{}, // フラット化された構造なので空
 		}
