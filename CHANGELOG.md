@@ -1,5 +1,7 @@
 # Changelog
 
+## [v0.6.11](https://github.com/takutakahashi/operation-mcp/compare/v0.6.10...v0.6.11) - 2025-04-20
+
 ## [v0.6.10](https://github.com/takutakahashi/operation-mcp/compare/v0.6.9...v0.6.10) - 2025-04-20
 - Init manager by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/68
 - Use mcp go by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/69
