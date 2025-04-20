@@ -38,6 +38,7 @@ func init() {
 	rootCmd = newRootCmd()
 	AddExecCommand(rootCmd)
 	AddListCommand(rootCmd)
+	AddMCPServerCommand(rootCmd)
 }
 
 func newRootCmd() *cobra.Command {
