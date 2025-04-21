@@ -32,7 +32,8 @@ func init() {
 
 	// ログディレクトリの作成
 	if err := os.MkdirAll(logDir, 0755); err != nil {
-		fmt.Printf("Warning: Failed to create log directory: %v\n", err)
+		// エラー時はログを出力しない
+		logger = log.New(io.Discard, "", 0)
 		return
 	}
 
@@ -43,17 +44,13 @@ func init() {
 	var err error
 	logFile, err = os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		fmt.Printf("Warning: Failed to open log file: %v\n", err)
-		// エラー時はstdoutにフォールバック
-		logger = log.New(os.Stdout, "", log.LstdFlags)
+		// エラー時はログを出力しない
+		logger = log.New(io.Discard, "", 0)
 		return
 	}
 
-	// マルチライターを作成して、ファイルとstdoutの両方に出力
-	multiWriter := io.MultiWriter(os.Stdout, logFile)
-
-	// ログの設定
-	logger = log.New(multiWriter, "", log.LstdFlags)
+	// ログの設定（ファイルのみに出力）
+	logger = log.New(logFile, "", log.LstdFlags)
 	logger.Printf("MCP Server starting, log file: %s", logPath)
 }
 
