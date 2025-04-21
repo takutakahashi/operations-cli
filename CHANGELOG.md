@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.12](https://github.com/takutakahashi/operation-mcp/compare/v0.6.11...v0.6.12) - 2025-04-21
+- Remove stdout logs for mcp-server by @kommon-ai in https://github.com/takutakahashi/operation-mcp/pull/73
+
 ## [v0.6.11](https://github.com/takutakahashi/operation-mcp/compare/v0.6.10...v0.6.11) - 2025-04-20
 
 ## [v0.6.10](https://github.com/takutakahashi/operation-mcp/compare/v0.6.9...v0.6.10) - 2025-04-20
