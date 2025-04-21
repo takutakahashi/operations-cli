@@ -224,7 +224,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 	}
 
 	// Execute the command
-	fmt.Printf("Executing: %s\n", strings.Join(finalCommand, " "))
+	// No output to stdout for mcp-server
 	cmd := exec.Command(finalCommand[0], finalCommand[1:]...)
 	cmd.Stdin = os.Stdin
 
@@ -276,7 +276,7 @@ func executeScript(script string, paramValues map[string]string) (string, error)
 	}
 
 	// Execute the script
-	fmt.Printf("Executing script: %s\n", tmpFile.Name())
+	// No output to stdout for mcp-server
 
 	// Run the script with bash to ensure compatibility
 	cmd := exec.Command("/bin/bash", tmpFile.Name())
@@ -371,7 +371,7 @@ func (m *Manager) ExecuteRawTool(toolPath string, args []string) (string, error)
 	}
 
 	// Execute the command
-	fmt.Printf("Executing: %s\n", strings.Join(finalCommand, " "))
+	// No output to stdout for mcp-server
 	cmd := exec.Command(finalCommand[0], finalCommand[1:]...)
 	cmd.Stdin = os.Stdin
 
