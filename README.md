@@ -20,14 +20,14 @@ Install the latest version with a single command:
 
 ```bash
 # Install latest version
-curl -fsSL https://takutakahashi.github.io/operation-mcp/install.sh | sh
+curl -fsSL https://takutakahashi.github.io/operation-mcp/install.sh | bash
 ```
 
 Install a specific version:
 
 ```bash
 # Install specific version
-curl -fsSL https://takutakahashi.github.io/operation-mcp/install.sh | sh -s -- -v 1.0.0
+curl -fsSL https://takutakahashi.github.io/operation-mcp/install.sh | bash -s -- -v 1.0.0
 ```
 
 For more installation options, see [detailed installation instructions](https://takutakahashi.github.io/operation-mcp/installation).
