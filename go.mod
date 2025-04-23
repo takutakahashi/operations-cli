@@ -32,6 +32,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.19 // indirect
 	github.com/aws/smithy-go v1.22.2 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
+	github.com/google/go-github/v57 v57.0.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -45,6 +47,7 @@ require (
 	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
+	golang.org/x/oauth2 v0.29.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
