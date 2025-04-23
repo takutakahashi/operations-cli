@@ -148,6 +148,24 @@ func loadConfigWithImports(configPath string, visitedPaths map[string]bool) (*Co
 		if err != nil {
 			return nil, fmt.Errorf("error reading config file from S3 %s: %w", configPath, err)
 		}
+	} else if isGitHubReleaseURL(configPath) {
+		// Parse GitHub Release URL to get owner, repo, path, and tag
+		owner, repo, path, tag, err := parseGitHubReleaseURL(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("invalid GitHub Release URL %s: %w", configPath, err)
+		}
+
+		// Get GitHub client
+		client, err := defaultGitHubClient()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create GitHub client: %w", err)
+		}
+
+		// Read the config file from GitHub Release
+		data, err = readFromGitHubRelease(client, owner, repo, path, tag)
+		if err != nil {
+			return nil, fmt.Errorf("error reading config file from GitHub Release %s: %w", configPath, err)
+		}
 	} else {
 		// For regular file paths, convert to absolute path first
 		absPath, err := filepath.Abs(configPath)
@@ -181,6 +199,13 @@ func loadConfigWithImports(configPath string, visitedPaths map[string]bool) (*Co
 				resolvedImportPath, err = resolveS3ImportPath(configPath, importPath)
 				if err != nil {
 					return nil, fmt.Errorf("failed to resolve S3 import path %s relative to %s: %w",
+						importPath, configPath, err)
+				}
+			} else if isGitHubReleaseURL(configPath) {
+				// For GitHub Release URLs, resolve the import path relative to the GitHub Release base path
+				resolvedImportPath, err = resolveGitHubReleaseImportPath(configPath, importPath)
+				if err != nil {
+					return nil, fmt.Errorf("failed to resolve GitHub Release import path %s relative to %s: %w",
 						importPath, configPath, err)
 				}
 			} else {
