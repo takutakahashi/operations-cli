@@ -262,9 +262,9 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("tool missing name")
 		}
 
-		// 少なくとも Command または Script のどちらかが指定されている必要がある
-		if len(tool.Command) == 0 && tool.Script == "" {
-			return fmt.Errorf("tool %s missing both command and script", tool.Name)
+		// 少なくとも Command または Script のどちらかが指定されているか、または一つ以上のサブツールを持つ必要がある
+		if len(tool.Command) == 0 && tool.Script == "" && len(tool.Subtools) == 0 {
+			return fmt.Errorf("tool %s must have command, script, or at least one subtool", tool.Name)
 		}
 
 		// Command と Script は排他的
