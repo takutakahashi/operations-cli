@@ -119,7 +119,7 @@ tools:
 }
 
 func TestConfigValidate(t *testing.T) {
-	// Test valid config
+	// Test valid config with command
 	validConfig := &Config{
 		Actions: []Action{
 			{
@@ -155,7 +155,37 @@ func TestConfigValidate(t *testing.T) {
 	}
 
 	if err := validConfig.Validate(); err != nil {
-		t.Errorf("Validation failed for valid config: %v", err)
+		t.Errorf("Validation failed for valid config with command: %v", err)
+	}
+	
+	// Test valid config with only subtools
+	validConfigWithSubtoolsOnly := &Config{
+		Tools: []Tool{
+			{
+				Name: "parent-tool",
+				Params: map[string]Parameter{
+					"param1": {
+						Description: "A parameter",
+						Type:        "string",
+						Required:    false,
+					},
+				},
+				Subtools: []Subtool{
+					{
+						Name: "subtool1",
+						Args: []string{"arg1", "arg2"},
+					},
+					{
+						Name: "subtool2",
+						Script: "echo 'Hello World'",
+					},
+				},
+			},
+		},
+	}
+
+	if err := validConfigWithSubtoolsOnly.Validate(); err != nil {
+		t.Errorf("Validation failed for valid config with only subtools: %v", err)
 	}
 
 	// Test invalid config - missing action type
@@ -221,7 +251,7 @@ func TestConfigValidate(t *testing.T) {
 		t.Errorf("Validation should fail for config with missing tool name")
 	}
 
-	// Test invalid config - missing command
+	// Test invalid config - missing command, script, and subtools
 	invalidConfig4 := &Config{
 		Actions: []Action{
 			{
@@ -233,13 +263,13 @@ func TestConfigValidate(t *testing.T) {
 		Tools: []Tool{
 			{
 				Name: "kubectl",
-				// Missing Command
+				// Missing Command, Script, and has no Subtools
 			},
 		},
 	}
 
 	if err := invalidConfig4.Validate(); err == nil {
-		t.Errorf("Validation should fail for config with missing command")
+		t.Errorf("Validation should fail for config with missing command, script, and subtools")
 	}
 }
 
