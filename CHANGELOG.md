@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.6.13](https://github.com/takutakahashi/operation-mcp/compare/v0.6.12...v0.6.13) - 2025-04-23
+- e2e.yaml と run_e2e_test.sh に script のテストを追加 by @kommon-ai in https://github.com/takutakahashi/operation-mcp/pull/78
+- GitHub Release からコンフィグファイルを取得できるようにする by @kommon-ai in https://github.com/takutakahashi/operation-mcp/pull/79
+
 ## [v0.6.12](https://github.com/takutakahashi/operation-mcp/compare/v0.6.11...v0.6.12) - 2025-04-21
 - Remove stdout logs for mcp-server by @kommon-ai in https://github.com/takutakahashi/operation-mcp/pull/73
 
