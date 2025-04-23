@@ -74,4 +74,34 @@ else
     exit 1
 fi
 
+# Test 7: Bash script with variables
+echo -e "\n${GREEN}Test 7: Bash script with variables${NC}"
+${OPERATIONS_BIN} exec bash_variables --set name="E2E Test" --set count=42
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ Test 7 passed${NC}"
+else
+    echo -e "${RED}✗ Test 7 failed${NC}"
+    exit 1
+fi
+
+# Test 8: Bash script with conditional logic
+echo -e "\n${GREEN}Test 8: Bash script with conditional logic${NC}"
+echo "y" | ${OPERATIONS_BIN} exec bash_conditional --set value=5
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ Test 8 passed${NC}"
+else
+    echo -e "${RED}✗ Test 8 failed${NC}"
+    exit 1
+fi
+
+# Test 9: Bash script with loop
+echo -e "\n${GREEN}Test 9: Bash script with loop${NC}"
+echo "y" | ${OPERATIONS_BIN} exec bash_loop --set iterations=3
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ Test 9 passed${NC}"
+else
+    echo -e "${RED}✗ Test 9 failed${NC}"
+    exit 1
+fi
+
 echo -e "\n${GREEN}All e2e tests passed successfully!${NC}"

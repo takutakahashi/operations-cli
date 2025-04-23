@@ -52,3 +52,60 @@ tools:
             required: true
         args: ["{{.seconds}}"]
         danger_level: high
+  
+  - name: bash
+    script: "#!/bin/bash\necho 'Basic bash script'"
+    subtools:
+      - name: variables
+        params:
+          name:
+            description: The name to use in the script
+            type: string
+            required: true
+          count:
+            description: The count value to use in the script
+            type: string
+            required: true
+        script: |
+          #!/bin/bash
+          # Set and display variables
+          NAME="{{.name}}"
+          COUNT={{.count}}
+          echo "Hello, $NAME!"
+          echo "Count: $COUNT"
+          echo "Current date: $(date)"
+        danger_level: low
+      
+      - name: conditional
+        params:
+          value:
+            description: The value to check in the conditional
+            type: string
+            required: true
+        script: |
+          #!/bin/bash
+          # Script with conditional logic
+          VALUE={{.value}}
+          if [ $VALUE -gt 10 ]; then
+            echo "Value $VALUE is greater than 10"
+          else
+            echo "Value $VALUE is less than or equal to 10"
+          fi
+        danger_level: medium
+      
+      - name: loop
+        params:
+          iterations:
+            description: The number of iterations for the loop
+            type: string
+            required: true
+        script: |
+          #!/bin/bash
+          # Script with loop
+          ITERATIONS={{.iterations}}
+          echo "Starting loop for $ITERATIONS iterations"
+          for i in $(seq 1 $ITERATIONS); do
+            echo "Iteration $i of $ITERATIONS"
+          done
+          echo "Loop completed"
+        danger_level: high
