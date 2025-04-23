@@ -251,7 +251,7 @@ func TestConfigValidate(t *testing.T) {
 		t.Errorf("Validation should fail for config with missing tool name")
 	}
 
-	// Test invalid config - missing command
+	// Test invalid config - missing command, script, and subtools
 	invalidConfig4 := &Config{
 		Actions: []Action{
 			{
@@ -263,13 +263,13 @@ func TestConfigValidate(t *testing.T) {
 		Tools: []Tool{
 			{
 				Name: "kubectl",
-				// Missing Command
+				// Missing Command, Script, and has no Subtools
 			},
 		},
 	}
 
 	if err := invalidConfig4.Validate(); err == nil {
-		t.Errorf("Validation should fail for config with missing command")
+		t.Errorf("Validation should fail for config with missing command, script, and subtools")
 	}
 }
 
