@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.15](https://github.com/takutakahashi/operation-mcp/compare/v0.6.14...v0.6.15) - 2025-04-24
+- Fix list command to display full tool names and remove extra newline by @kommon-ai in https://github.com/takutakahashi/operation-mcp/pull/88
+
 ## [v0.6.14](https://github.com/takutakahashi/operation-mcp/compare/v0.6.13...v0.6.14) - 2025-04-24
 - Tool validation: Add subtool condition check by @kommon-ai in https://github.com/takutakahashi/operation-mcp/pull/83
 - Add before after script by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/86
