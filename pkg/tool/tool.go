@@ -18,6 +18,10 @@ type Info struct {
 	Name        string
 	Description string
 	Params      map[string]config.Parameter
+	BeforeExec  string // Script to execute before the main script
+	AfterExec   string // Script to execute after the main script
+	BeforeExec  string // Script to execute before the main script
+	AfterExec   string // Script to execute after the main script
 	Subtools    []Info
 }
 
