@@ -185,7 +185,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 		if err != nil {
 			return "", fmt.Errorf("failed to execute parent beforeExec: %w", err)
 		}
-		outputs = append(outputs, output)
+		outputs = append(outputs, strings.TrimSpace(output))
 	}
 
 	// Execute beforeExec if it exists
@@ -194,7 +194,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 		if err != nil {
 			return "", fmt.Errorf("failed to execute beforeExec: %w", err)
 		}
-		outputs = append(outputs, output)
+		outputs = append(outputs, strings.TrimSpace(output))
 	}
 
 	// Validate parameters
@@ -207,7 +207,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 	if err != nil {
 		return "", err
 	}
-	outputs = append(outputs, output)
+	outputs = append(outputs, strings.TrimSpace(output))
 
 	// Execute afterExec if it exists
 	if afterExec != "" {
@@ -215,7 +215,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 		if err != nil {
 			return "", fmt.Errorf("failed to execute afterExec: %w", err)
 		}
-		outputs = append(outputs, output)
+		outputs = append(outputs, strings.TrimSpace(output))
 	}
 
 	// Execute parent afterExec if it exists
@@ -224,7 +224,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 		if err != nil {
 			return "", fmt.Errorf("failed to execute parent afterExec: %w", err)
 		}
-		outputs = append(outputs, output)
+		outputs = append(outputs, strings.TrimSpace(output))
 	}
 
 	return strings.Join(outputs, "\n"), nil
