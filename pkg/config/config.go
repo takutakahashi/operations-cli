@@ -26,11 +26,13 @@ type Action struct {
 
 // Tool represents a tool configuration
 type Tool struct {
-	Name     string     `yaml:"name"`
-	Command  []string   `yaml:"command,omitempty"`
-	Script   string     `yaml:"script,omitempty"`
-	Params   Parameters `yaml:"params"`
-	Subtools []Subtool  `yaml:"subtools"`
+	Name       string     `yaml:"name"`
+	Command    []string   `yaml:"command,omitempty"`
+	Script     string     `yaml:"script,omitempty"`
+	BeforeExec string     `yaml:"before_exec,omitempty"`
+	AfterExec  string     `yaml:"after_exec,omitempty"`
+	Params     Parameters `yaml:"params"`
+	Subtools   []Subtool  `yaml:"subtools"`
 }
 
 // Subtool represents a subtool configuration
@@ -38,6 +40,8 @@ type Subtool struct {
 	Name        string     `yaml:"name"`
 	Args        []string   `yaml:"args,omitempty"`
 	Script      string     `yaml:"script,omitempty"`
+	BeforeExec  string     `yaml:"before_exec,omitempty"`
+	AfterExec   string     `yaml:"after_exec,omitempty"`
 	Params      Parameters `yaml:"params"`
 	DangerLevel string     `yaml:"danger_level"`
 	Subtools    []Subtool  `yaml:"subtools"`

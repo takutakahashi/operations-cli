@@ -33,6 +33,8 @@ type Manager struct {
 type CompiledTool struct {
 	Command     []string
 	Script      string
+	BeforeExec  string
+	AfterExec   string
 	Params      map[string]config.Parameter
 	DangerLevel string
 }
@@ -51,9 +53,11 @@ func NewManager(cfg *config.Config) *Manager {
 		toolName := strings.ReplaceAll(tool.Name, " ", "_")
 		// Compile root tool
 		mgr.compiledTools[toolName] = &CompiledTool{
-			Command: tool.Command,
-			Script:  tool.Script,
-			Params:  tool.Params,
+			Command:    tool.Command,
+			Script:     tool.Script,
+			BeforeExec: tool.BeforeExec,
+			AfterExec:  tool.AfterExec,
+			Params:     tool.Params,
 		}
 
 		// Compile subtools recursively
@@ -123,6 +127,8 @@ func (m *Manager) compileSubtools(parentPath string, parentCommand []string, par
 		m.compiledTools[toolPath] = &CompiledTool{
 			Command:     command,
 			Script:      subtool.Script,
+			BeforeExec:  subtool.BeforeExec,
+			AfterExec:   subtool.AfterExec,
 			Params:      params,
 			DangerLevel: subtool.DangerLevel,
 		}
@@ -197,43 +203,88 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 		}
 	}
 
-	// スクリプトが指定されている場合はそれを実行
-	if script != "" {
-		return executeScript(script, paramValues)
-	}
+	// Get parent tool if exists
+	parentTool := m.getParentTool(toolPath)
 
-	// コマンドが指定されている場合は従来通り実行
-	// Replace template parameters in command args
-	finalCommand := make([]string, len(command))
-	for i, arg := range command {
-		if strings.Contains(arg, "{{") {
-			tmpl, err := template.New("arg").Parse(arg)
-			if err != nil {
-				return "", fmt.Errorf("error parsing template in argument: %w", err)
-			}
-
-			var buf bytes.Buffer
-			if err := tmpl.Execute(&buf, paramValues); err != nil {
-				return "", fmt.Errorf("error executing template in argument: %w", err)
-			}
-
-			finalCommand[i] = buf.String()
-		} else {
-			finalCommand[i] = arg
+	// Execute parent's BeforeExec if exists
+	if parentTool != nil && parentTool.BeforeExec != "" {
+		output, err := executeScript(parentTool.BeforeExec, paramValues)
+		if err != nil {
+			return output, fmt.Errorf("parent before_exec failed: %w", err)
 		}
 	}
 
-	// Execute the command
-	// No output to stdout for mcp-server
-	cmd := exec.Command(finalCommand[0], finalCommand[1:]...)
-	cmd.Stdin = os.Stdin
+	// Get current tool
+	currentTool := m.compiledTools[toolPath]
 
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("error executing command: %w\noutput: %s", err, string(output))
+	// Execute current tool's BeforeExec if exists
+	if currentTool.BeforeExec != "" {
+		output, err := executeScript(currentTool.BeforeExec, paramValues)
+		if err != nil {
+			return output, fmt.Errorf("before_exec failed: %w", err)
+		}
 	}
 
-	return string(output), nil
+	var result string
+	// Execute the main script or command
+	if script != "" {
+		result, err = executeScript(script, paramValues)
+		if err != nil {
+			return result, err
+		}
+	} else if len(command) > 0 {
+		// Replace template parameters in command args
+		finalCommand := make([]string, len(command))
+		for i, arg := range command {
+			if strings.Contains(arg, "{{") {
+				tmpl, err := template.New("arg").Parse(arg)
+				if err != nil {
+					return "", fmt.Errorf("error parsing template in argument: %w", err)
+				}
+
+				var buf bytes.Buffer
+				if err := tmpl.Execute(&buf, paramValues); err != nil {
+					return "", fmt.Errorf("error executing template in argument: %w", err)
+				}
+
+				finalCommand[i] = buf.String()
+			} else {
+				finalCommand[i] = arg
+			}
+		}
+		result, err = m.execInstance.ExecuteWithOutput(finalCommand)
+		if err != nil {
+			return result, err
+		}
+	}
+
+	// Execute current tool's AfterExec if exists
+	if currentTool.AfterExec != "" {
+		output, err := executeScript(currentTool.AfterExec, paramValues)
+		if err != nil {
+			return output, fmt.Errorf("after_exec failed: %w", err)
+		}
+	}
+
+	// Execute parent's AfterExec if exists
+	if parentTool != nil && parentTool.AfterExec != "" {
+		output, err := executeScript(parentTool.AfterExec, paramValues)
+		if err != nil {
+			return output, fmt.Errorf("parent after_exec failed: %w", err)
+		}
+	}
+
+	return result, nil
+}
+
+// getParentTool returns the parent tool of the given tool path
+func (m *Manager) getParentTool(toolPath string) *CompiledTool {
+	lastIndex := strings.LastIndex(toolPath, "_")
+	if lastIndex == -1 {
+		return nil
+	}
+	parentPath := toolPath[:lastIndex]
+	return m.compiledTools[parentPath]
 }
 
 // executeScript executes a script with the given parameters
@@ -302,7 +353,16 @@ func (m *Manager) ExecuteRawTool(toolPath string, args []string) (string, error)
 	paramValues := make(map[string]string)
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
-		if strings.HasPrefix(arg, "-") {
+		if strings.HasPrefix(arg, "--set") {
+			// Handle --set key=value format
+			if i+1 < len(args) {
+				parts := strings.SplitN(args[i+1], "=", 2)
+				if len(parts) == 2 {
+					paramValues[parts[0]] = parts[1]
+				}
+				i++ // Skip the next arg since it's the value
+			}
+		} else if strings.HasPrefix(arg, "-") {
 			paramName := strings.TrimLeft(arg, "-")
 			// Handle --param=value format
 			if strings.Contains(paramName, "=") {

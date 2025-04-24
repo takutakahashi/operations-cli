@@ -2,6 +2,7 @@ package tool
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/takutakahashi/operation-mcp/pkg/config"
@@ -441,4 +442,51 @@ func TestExecuteRawTool(t *testing.T) {
 	if err == nil {
 		t.Errorf("ExecuteRawTool should fail when required script parameter is missing")
 	}
+}
+
+func TestBeforeAfterExec(t *testing.T) {
+	cfg := &config.Config{
+		Tools: []config.Tool{
+			{
+				Name:       "parent",
+				BeforeExec: "echo 'parent before'",
+				AfterExec:  "echo 'parent after'",
+				Subtools: []config.Subtool{
+					{
+						Name:       "child",
+						BeforeExec: "echo 'child before'",
+						Script:     "echo 'child main'",
+						AfterExec:  "echo 'child after'",
+					},
+				},
+			},
+		},
+	}
+
+	mgr := NewManager(cfg)
+	mgr.WithExecutor(&mockExecutor{})
+
+	output, err := mgr.ExecuteTool("parent_child", map[string]string{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expected := "parent before\nchild before\nchild main\nchild after\nparent after"
+	if output != expected {
+		t.Errorf("expected output %q, got %q", expected, output)
+	}
+}
+
+type mockExecutor struct{}
+
+func (m *mockExecutor) Execute(command []string) error {
+	return nil
+}
+
+func (m *mockExecutor) ExecuteWithOutput(command []string) (string, error) {
+	return strings.Join(command, " "), nil
+}
+
+func (m *mockExecutor) Close() error {
+	return nil
 }
