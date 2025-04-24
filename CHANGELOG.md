@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.16](https://github.com/takutakahashi/operation-mcp/compare/v0.6.15...v0.6.16) - 2025-04-24
+- log handler by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/91
+
 ## [v0.6.15](https://github.com/takutakahashi/operation-mcp/compare/v0.6.14...v0.6.15) - 2025-04-24
 - Fix list command to display full tool names and remove extra newline by @kommon-ai in https://github.com/takutakahashi/operation-mcp/pull/88
 
