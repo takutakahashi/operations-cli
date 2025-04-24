@@ -137,9 +137,13 @@ fi
 echo -e "\n${GREEN}Test 10: Lifecycle hooks without parameters${NC}"
 output=$(${OPERATIONS_BIN} exec lifecycle_test)
 expected_order="Root before_exec
+
 Subtool before_exec
+
 Main script execution
+
 Subtool after_exec
+
 Root after_exec"
 
 if [ "$output" = "$expected_order" ]; then
@@ -157,9 +161,13 @@ fi
 echo -e "\n${GREEN}Test 11: Lifecycle hooks with parameters${NC}"
 output=$(${OPERATIONS_BIN} exec lifecycle_with-params --set param="test value")
 expected_order="Root before_exec
+
 Before exec with param: test value
+
 Main script with param: test value
+
 After exec with param: test value
+
 Root after_exec"
 
 if [ "$output" = "$expected_order" ]; then

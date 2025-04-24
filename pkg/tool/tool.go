@@ -31,6 +31,7 @@ type Manager struct {
 
 // CompiledTool represents a compiled tool
 type CompiledTool struct {
+	Name        string
 	Command     []string
 	Script      string
 	BeforeExec  string
@@ -62,13 +63,15 @@ func NewManager(cfg *config.Config) *Manager {
 		// ルートツール名のスペースをアンダースコアに置換
 		toolName := strings.ReplaceAll(tool.Name, " ", "_")
 		// Compile root tool
-		mgr.compiledTools[toolName] = &CompiledTool{
+		root := &CompiledTool{
+			Name:       tool.Name,
 			Command:    tool.Command,
 			Script:     tool.Script,
 			BeforeExec: tool.BeforeExec,
 			AfterExec:  tool.AfterExec,
 			Params:     tool.Params,
 		}
+		mgr.compiledTools[toolName] = root
 
 		// Compile subtools recursively
 		mgr.compileSubtools(toolName, tool.Command, tool.Params, tool.Subtools)
@@ -135,6 +138,7 @@ func (m *Manager) compileSubtools(parentPath string, parentCommand []string, par
 
 		// Create compiled tool
 		m.compiledTools[toolPath] = &CompiledTool{
+			Name:        subtool.Name,
 			Command:     command,
 			Script:      subtool.Script,
 			BeforeExec:  subtool.BeforeExec,
@@ -171,11 +175,26 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 		return "", err
 	}
 
+	var outputs []string
+
+	// Get parent tool
+	parentTool := m.getParentTool(toolPath)
+
+	if parentTool != nil && parentTool.BeforeExec != "" {
+		output, err := executeScript(parentTool.BeforeExec, paramValues)
+		if err != nil {
+			return "", fmt.Errorf("failed to execute parent beforeExec: %w", err)
+		}
+		outputs = append(outputs, output)
+	}
+
 	// Execute beforeExec if it exists
 	if beforeExec != "" {
-		if _, err := m.ExecuteTool(beforeExec, paramValues); err != nil {
+		output, err := executeScript(beforeExec, paramValues)
+		if err != nil {
 			return "", fmt.Errorf("failed to execute beforeExec: %w", err)
 		}
+		outputs = append(outputs, output)
 	}
 
 	// Validate parameters
@@ -188,24 +207,36 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 	if err != nil {
 		return "", err
 	}
+	outputs = append(outputs, output)
 
 	// Execute afterExec if it exists
 	if afterExec != "" {
-		if _, err := m.ExecuteTool(afterExec, paramValues); err != nil {
+		output, err := executeScript(afterExec, paramValues)
+		if err != nil {
 			return "", fmt.Errorf("failed to execute afterExec: %w", err)
 		}
+		outputs = append(outputs, output)
 	}
 
-	return output, nil
+	// Execute parent afterExec if it exists
+	if parentTool != nil && parentTool.AfterExec != "" {
+		output, err := executeScript(parentTool.AfterExec, paramValues)
+		if err != nil {
+			return "", fmt.Errorf("failed to execute parent afterExec: %w", err)
+		}
+		outputs = append(outputs, output)
+	}
+
+	return strings.Join(outputs, "\n"), nil
 }
 
 // getParentTool returns the parent tool of the given tool path
 func (m *Manager) getParentTool(toolPath string) *CompiledTool {
-	lastIndex := strings.LastIndex(toolPath, "_")
-	if lastIndex == -1 {
+	parts := strings.Split(toolPath, "_")
+	if len(parts) <= 1 {
 		return nil
 	}
-	parentPath := toolPath[:lastIndex]
+	parentPath := parts[0]
 	return m.compiledTools[parentPath]
 }
 
