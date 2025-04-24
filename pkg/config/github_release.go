@@ -31,16 +31,16 @@ func parseGitHubReleaseURL(urlStr string) (owner, repo, path, tag string, err er
 	if len(matches) < 4 {
 		return "", "", "", "", fmt.Errorf("invalid GitHub Release URL format: %s", urlStr)
 	}
-	
+
 	owner = matches[1]
 	repo = matches[2]
 	path = matches[3]
-	
+
 	// Tag might be missing if URL doesn't have @tag part
 	if len(matches) > 4 {
 		tag = matches[4]
 	}
-	
+
 	return owner, repo, path, tag, nil
 }
 
@@ -140,11 +140,11 @@ func readFromGitHubRelease(client githubClient, owner, repo, path, tag string) (
 
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return nil, fmt.Errorf("release not found for %s/%s%s", 
+			return nil, fmt.Errorf("release not found for %s/%s%s",
 				owner, repo, getTagMsg(tag))
 		}
 		if resp != nil && resp.StatusCode == http.StatusForbidden {
-			return nil, fmt.Errorf("access forbidden for %s/%s. Try setting GITHUB_TOKEN environment variable", 
+			return nil, fmt.Errorf("access forbidden for %s/%s. Try setting GITHUB_TOKEN environment variable",
 				owner, repo)
 		}
 		return nil, fmt.Errorf("failed to get release for %s/%s: %w", owner, repo, err)
@@ -152,14 +152,14 @@ func readFromGitHubRelease(client githubClient, owner, repo, path, tag string) (
 
 	// Check if we have a release
 	if release == nil {
-		return nil, fmt.Errorf("no release found for %s/%s%s", 
+		return nil, fmt.Errorf("no release found for %s/%s%s",
 			owner, repo, getTagMsg(tag))
 	}
 
 	// Find the asset with the matching name
 	var asset *github.ReleaseAsset
 	opts := &github.ListOptions{PerPage: 100}
-	
+
 	for {
 		assets, resp, err := client.ListReleaseAssets(ctx, owner, repo, release.GetID(), opts)
 		if err != nil {
@@ -180,7 +180,7 @@ func readFromGitHubRelease(client githubClient, owner, repo, path, tag string) (
 	}
 
 	if asset == nil {
-		return nil, fmt.Errorf("asset %s not found in release for %s/%s%s", 
+		return nil, fmt.Errorf("asset %s not found in release for %s/%s%s",
 			path, owner, repo, getTagMsg(tag))
 	}
 
@@ -224,6 +224,6 @@ func resolveGitHubReleaseImportPath(baseURL, importPath string) (string, error) 
 	if tag != "" {
 		return fmt.Sprintf("github_release://%s/%s/%s@%s", owner, repo, resolvedPath, tag), nil
 	}
-	
+
 	return fmt.Sprintf("github_release://%s/%s/%s", owner, repo, resolvedPath), nil
 }

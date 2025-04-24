@@ -199,29 +199,94 @@ tools:
 
 ```yaml
 tools:
-  - name: script-example
-    script: |
+  - name: backup
+    command:
+      - backup
+    beforeExec: |
       #!/bin/bash
-      echo "Running a shell script with parameters"
-      echo "Parameter value: {{.param1}}"
-      # Any bash commands can be used
-      ls -la
-      date
+      echo "Starting backup process..."
+      # バックアップ前の準備処理
+    afterExec: |
+      #!/bin/bash
+      echo "Backup completed."
+      # バックアップ後のクリーンアップ処理
     params:
-      param1:
-        description: A parameter for the script
+      target:
+        description: Backup target directory
         type: string
         required: true
     subtools:
-      - name: complex
-        script: |
+      - name: database
+        args: ["--type", "database", "--target", "{{.target}}"]
+        beforeExec: |
           #!/bin/bash
-          # More complex script operation
-          echo "Complex operation with {{.param1}}"
-          # More bash commands...
+          echo "Preparing database backup..."
+          # データベース固有の準備処理
+        afterExec: |
+          #!/bin/bash
+          echo "Database backup completed."
+          # データベース固有のクリーンアップ処理
+        danger_level: high
+
+  - name: deploy
+    script: |
+      #!/bin/bash
+      # デプロイメントスクリプト
+      kubectl apply -f {{.manifest}}
+    beforeExec: |
+      #!/bin/bash
+      # デプロイ前の検証
+      kubectl diff -f {{.manifest}}
+    afterExec: |
+      #!/bin/bash
+      # デプロイ後の確認
+      kubectl get pods -n {{.namespace}}
+    params:
+      manifest:
+        description: Kubernetes manifest file
+        type: string
+        required: true
+      namespace:
+        description: Kubernetes namespace
+        type: string
+        required: true
 ```
 
 Template variables defined in `params` can be used in both command arguments and shell scripts.
+
+### Lifecycle Hooks
+
+The tool supports lifecycle hooks that allow you to execute scripts before and after the main command:
+
+- `beforeExec`: Executed before the main command
+- `afterExec`: Executed after the main command
+
+Both hooks:
+- Support shell script format
+- Can use tool parameters as template variables
+- Are inherited through the tool hierarchy
+
+Execution order:
+1. Parent tool's beforeExec
+2. Child tool's beforeExec
+3. Main command/script
+4. Child tool's afterExec
+5. Parent tool's afterExec
+
+Example usage:
+
+```bash
+# This will execute in the following order:
+# 1. backup tool's beforeExec ("Starting backup process...")
+# 2. database subtool's beforeExec ("Preparing database backup...")
+# 3. The main backup command
+# 4. database subtool's afterExec ("Database backup completed.")
+# 5. backup tool's afterExec ("Backup completed.")
+operations backup_database --target /path/to/db
+
+# This will show diff before applying and pod status after applying
+operations deploy --manifest deployment.yaml --namespace production
+```
 
 ## Development
 

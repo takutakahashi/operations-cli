@@ -157,7 +157,7 @@ func TestConfigValidate(t *testing.T) {
 	if err := validConfig.Validate(); err != nil {
 		t.Errorf("Validation failed for valid config with command: %v", err)
 	}
-	
+
 	// Test valid config with only subtools
 	validConfigWithSubtoolsOnly := &Config{
 		Tools: []Tool{
@@ -176,7 +176,7 @@ func TestConfigValidate(t *testing.T) {
 						Args: []string{"arg1", "arg2"},
 					},
 					{
-						Name: "subtool2",
+						Name:   "subtool2",
 						Script: "echo 'Hello World'",
 					},
 				},

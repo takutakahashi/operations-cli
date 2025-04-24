@@ -217,9 +217,9 @@ func TestResolveGitHubReleaseImportPath(t *testing.T) {
 
 // MockGitHubClient is a mock implementation of the githubClient interface for testing
 type MockGitHubClient struct {
-	GetLatestReleaseFunc    func(ctx context.Context, owner, repo string) (*github.RepositoryRelease, *github.Response, error)
-	GetReleaseByTagFunc     func(ctx context.Context, owner, repo string, tag string) (*github.RepositoryRelease, *github.Response, error)
-	ListReleaseAssetsFunc   func(ctx context.Context, owner, repo string, id int64, opts *github.ListOptions) ([]*github.ReleaseAsset, *github.Response, error)
+	GetLatestReleaseFunc     func(ctx context.Context, owner, repo string) (*github.RepositoryRelease, *github.Response, error)
+	GetReleaseByTagFunc      func(ctx context.Context, owner, repo string, tag string) (*github.RepositoryRelease, *github.Response, error)
+	ListReleaseAssetsFunc    func(ctx context.Context, owner, repo string, id int64, opts *github.ListOptions) ([]*github.ReleaseAsset, *github.Response, error)
 	DownloadReleaseAssetFunc func(ctx context.Context, owner, repo string, id int64) (io.ReadCloser, string, error)
 }
 
