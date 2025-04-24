@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/takutakahashi/operation-mcp/pkg/config"
-	"github.com/takutakahashi/operation-mcp/pkg/tool"
 )
 
 // listCmd represents the list command
@@ -54,7 +53,7 @@ func AddListCommand(root *cobra.Command) {
 }
 
 // printSubtoolsFlat prints all subtools in a flat list with tool_subtool format
-func printSubtoolsFlat(subtools []tool.Info, parentPath string, verbose bool) {
+func printSubtoolsFlat(subtools []config.Subtool, parentPath string, verbose bool) {
 	for _, subtool := range subtools {
 		// Format the full tool path (tool_subtool)
 		fullPath := fmt.Sprintf("%s_%s", parentPath, subtool.Name)

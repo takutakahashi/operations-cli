@@ -39,6 +39,16 @@ type CompiledTool struct {
 	DangerLevel string
 }
 
+// ToolInfo represents additional information about a tool
+type ToolInfo struct {
+	Command     []string
+	Script      string
+	Params      map[string]config.Parameter
+	DangerLevel string
+	BeforeExec  string
+	AfterExec   string
+}
+
 // NewManager creates a new tool manager
 func NewManager(cfg *config.Config) *Manager {
 	mgr := &Manager{
@@ -144,137 +154,49 @@ func (m *Manager) WithExecutor(exec executor.Executor) {
 }
 
 // FindTool finds a tool by its name
-func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config.Parameter, string, error) {
+func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config.Parameter, string, string, string, error) {
 	tool, exists := m.compiledTools[toolPath]
 	if !exists {
-		return nil, "", nil, "", fmt.Errorf("tool not found: %s", toolPath)
+		return nil, "", nil, "", "", "", fmt.Errorf("tool not found: %s", toolPath)
 	}
 
-	return tool.Command, tool.Script, tool.Params, tool.DangerLevel, nil
+	return tool.Command, tool.Script, tool.Params, tool.DangerLevel, tool.BeforeExec, tool.AfterExec, nil
 }
 
 // ExecuteTool executes a tool with the given parameters
 func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (string, error) {
 	// Find the tool
-	command, script, params, dangerLevel, err := m.FindTool(toolPath)
+	command, script, params, dangerLevel, beforeExec, afterExec, err := m.FindTool(toolPath)
 	if err != nil {
 		return "", err
 	}
 
-	// Validate required parameters
-	for name, param := range params {
-		if param.Required {
-			value, exists := paramValues[name]
-			if !exists || value == "" {
-				return "", fmt.Errorf("required parameter missing: %s", name)
-			}
+	// Execute beforeExec if it exists
+	if beforeExec != "" {
+		if _, err := m.ExecuteTool(beforeExec, paramValues); err != nil {
+			return "", fmt.Errorf("failed to execute beforeExec: %w", err)
 		}
 	}
 
-	// Check danger level for parameters with validation rules
-	for name, param := range params {
-		value, exists := paramValues[name]
-		if exists && len(param.Validate) > 0 {
-			for _, validation := range param.Validate {
-				proceed, err := m.dangerManager.CheckDangerLevel(
-					validation.DangerLevel,
-					name,
-					value,
-					param.Validate,
-				)
-				if err != nil {
-					return "", err
-				}
-				if !proceed {
-					return "", fmt.Errorf("operation aborted due to danger level check")
-				}
-			}
+	// Validate parameters
+	if err := validateParams(params, paramValues); err != nil {
+		return "", err
+	}
+
+	// Execute the tool
+	output, err := m.executeCommand(command, script, paramValues, dangerLevel)
+	if err != nil {
+		return "", err
+	}
+
+	// Execute afterExec if it exists
+	if afterExec != "" {
+		if _, err := m.ExecuteTool(afterExec, paramValues); err != nil {
+			return "", fmt.Errorf("failed to execute afterExec: %w", err)
 		}
 	}
 
-	// Check danger level for the tool itself
-	if dangerLevel != "" {
-		proceed, err := m.dangerManager.CheckDangerLevel(dangerLevel, "", "", nil)
-		if err != nil {
-			return "", err
-		}
-		if !proceed {
-			return "", fmt.Errorf("operation aborted due to danger level check")
-		}
-	}
-
-	// Get parent tool if exists
-	parentTool := m.getParentTool(toolPath)
-
-	// Execute parent's BeforeExec if exists
-	if parentTool != nil && parentTool.BeforeExec != "" {
-		output, err := executeScript(parentTool.BeforeExec, paramValues)
-		if err != nil {
-			return output, fmt.Errorf("parent before_exec failed: %w", err)
-		}
-	}
-
-	// Get current tool
-	currentTool := m.compiledTools[toolPath]
-
-	// Execute current tool's BeforeExec if exists
-	if currentTool.BeforeExec != "" {
-		output, err := executeScript(currentTool.BeforeExec, paramValues)
-		if err != nil {
-			return output, fmt.Errorf("before_exec failed: %w", err)
-		}
-	}
-
-	var result string
-	// Execute the main script or command
-	if script != "" {
-		result, err = executeScript(script, paramValues)
-		if err != nil {
-			return result, err
-		}
-	} else if len(command) > 0 {
-		// Replace template parameters in command args
-		finalCommand := make([]string, len(command))
-		for i, arg := range command {
-			if strings.Contains(arg, "{{") {
-				tmpl, err := template.New("arg").Parse(arg)
-				if err != nil {
-					return "", fmt.Errorf("error parsing template in argument: %w", err)
-				}
-
-				var buf bytes.Buffer
-				if err := tmpl.Execute(&buf, paramValues); err != nil {
-					return "", fmt.Errorf("error executing template in argument: %w", err)
-				}
-
-				finalCommand[i] = buf.String()
-			} else {
-				finalCommand[i] = arg
-			}
-		}
-		result, err = m.execInstance.ExecuteWithOutput(finalCommand)
-		if err != nil {
-			return result, err
-		}
-	}
-
-	// Execute current tool's AfterExec if exists
-	if currentTool.AfterExec != "" {
-		output, err := executeScript(currentTool.AfterExec, paramValues)
-		if err != nil {
-			return output, fmt.Errorf("after_exec failed: %w", err)
-		}
-	}
-
-	// Execute parent's AfterExec if exists
-	if parentTool != nil && parentTool.AfterExec != "" {
-		output, err := executeScript(parentTool.AfterExec, paramValues)
-		if err != nil {
-			return output, fmt.Errorf("parent after_exec failed: %w", err)
-		}
-	}
-
-	return result, nil
+	return output, nil
 }
 
 // getParentTool returns the parent tool of the given tool path
@@ -344,7 +266,7 @@ func executeScript(script string, paramValues map[string]string) (string, error)
 // ExecuteRawTool executes a tool with the given raw arguments
 func (m *Manager) ExecuteRawTool(toolPath string, args []string) (string, error) {
 	// Find the tool and subtool
-	command, script, params, dangerLevel, err := m.FindTool(toolPath)
+	command, script, params, dangerLevel, _, _, err := m.FindTool(toolPath)
 	if err != nil {
 		return "", err
 	}
@@ -444,34 +366,34 @@ func (m *Manager) ExecuteRawTool(toolPath string, args []string) (string, error)
 }
 
 // ListTools returns all tools and subtools defined in the config
-func (m *Manager) ListTools() []Info {
-	if m.config == nil || len(m.config.Tools) == 0 {
-		return []Info{}
+func (m *Manager) ListTools() map[string]config.Tool {
+	if _, _, _, _, _, _, err := m.FindTool("list"); err != nil {
+		return make(map[string]config.Tool)
 	}
 
-	result := make([]Info, 0, len(m.compiledTools))
+	result := make(map[string]config.Tool, len(m.compiledTools))
 	for path, tool := range m.compiledTools {
-		// デバッグログの出力
-		if os.Getenv("OM_DEBUG") == "true" {
-			fmt.Printf("[DEBUG] Tool: %s\n", path)
-			fmt.Printf("[DEBUG]   Command: %v\n", tool.Command)
-			fmt.Printf("[DEBUG]   Script: %s\n", tool.Script)
-			fmt.Printf("[DEBUG]   Params: %v\n", tool.Params)
-			fmt.Printf("[DEBUG]   DangerLevel: %s\n", tool.DangerLevel)
-		}
-
-		// パスから名前を取得（最後の_以降）
-		parts := strings.Split(path, "_")
+		parts := strings.Split(path, ".")
 		name := strings.ReplaceAll(parts[len(parts)-1], " ", "_")
 
-		toolInfo := Info{
-			Name:        name,
-			Description: "", // Config doesn't have description field for tools
-			Params:      tool.Params,
-			Subtools:    []Info{}, // フラット化された構造なので空
+		// Find the original tool in config to get its subtools
+		var subtools []config.Subtool
+		for _, configTool := range m.config.Tools {
+			if configTool.Name == name {
+				subtools = configTool.Subtools
+				break
+			}
 		}
 
-		result = append(result, toolInfo)
+		toolInfo := config.Tool{
+			Name:     name,
+			Command:  tool.Command,
+			Script:   tool.Script,
+			Params:   tool.Params,
+			Subtools: subtools,
+		}
+
+		result[path] = toolInfo
 	}
 
 	return result
@@ -485,4 +407,80 @@ func (m *Manager) GetConfig() *config.Config {
 // GetCompiledTools returns the compiled tools map
 func (m *Manager) GetCompiledTools() map[string]*CompiledTool {
 	return m.compiledTools
+}
+
+func (m *Manager) GetToolInfo(toolPath string) (*ToolInfo, error) {
+	command, script, params, dangerLevel, beforeExec, afterExec, err := m.FindTool(toolPath)
+	if err != nil {
+		return nil, err
+	}
+	return &ToolInfo{
+		Command:     command,
+		Script:      script,
+		Params:      params,
+		DangerLevel: dangerLevel,
+		BeforeExec:  beforeExec,
+		AfterExec:   afterExec,
+	}, nil
+}
+
+func validateParams(params map[string]config.Parameter, paramValues map[string]string) error {
+	// Validate required parameters
+	for name, param := range params {
+		if param.Required {
+			value, exists := paramValues[name]
+			if !exists || value == "" {
+				return fmt.Errorf("required parameter missing: %s", name)
+			}
+		}
+	}
+	return nil
+}
+
+func (m *Manager) executeCommand(command []string, script string, paramValues map[string]string, dangerLevel string) (string, error) {
+	// Check danger level for the tool itself
+	if dangerLevel != "" {
+		proceed, err := m.dangerManager.CheckDangerLevel(dangerLevel, "", "", nil)
+		if err != nil {
+			return "", err
+		}
+		if !proceed {
+			return "", fmt.Errorf("operation aborted due to danger level check")
+		}
+	}
+
+	var result string
+	var err error
+	// Execute the main script or command
+	if script != "" {
+		result, err = executeScript(script, paramValues)
+		if err != nil {
+			return result, err
+		}
+	} else if len(command) > 0 {
+		// Replace template parameters in command args
+		finalCommand := make([]string, len(command))
+		for i, arg := range command {
+			if strings.Contains(arg, "{{") {
+				tmpl, err := template.New("arg").Parse(arg)
+				if err != nil {
+					return "", fmt.Errorf("error parsing template in argument: %w", err)
+				}
+
+				var buf bytes.Buffer
+				if err := tmpl.Execute(&buf, paramValues); err != nil {
+					return "", fmt.Errorf("error executing template in argument: %w", err)
+				}
+
+				finalCommand[i] = buf.String()
+			} else {
+				finalCommand[i] = arg
+			}
+		}
+		result, err = m.execInstance.ExecuteWithOutput(finalCommand)
+		if err != nil {
+			return result, err
+		}
+	}
+	return result, nil
 }
