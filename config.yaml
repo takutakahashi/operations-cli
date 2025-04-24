@@ -35,6 +35,14 @@ imports:
   # - /path/to/another/config.yaml  # 絶対パスでの指定も可能
 
 tools:
+  - name: alertmanager
+    subtools:
+      - name: get silences
+        script: |
+          curl -s -X GET http://localhost:9093/api/v2/silences
+      - name: get alerts
+        script: |
+          curl -s -X GET http://localhost:9093/api/v2/alerts
   - name: kubectl
     command:
       - kubectl

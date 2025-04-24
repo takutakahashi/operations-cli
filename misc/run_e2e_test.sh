@@ -7,8 +7,11 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Set log level to ERROR to minimize output
+export OM_LOG_LEVEL=ERROR
+
 # Enable debug logging
-export OM_DEBUG=true
+#export OM_DEBUG=true
 
 # Debug function
 debug() {
