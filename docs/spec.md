@@ -134,6 +134,8 @@ tools:
 tools:
   - name: <ツール名>
     command: [<コマンド>, ...]
+    beforeExec: <実行前に実行するスクリプト>
+    afterExec: <実行後に実行するスクリプト>
     params:
       <パラメータ名>:
         description: <パラメータの説明>
@@ -145,6 +147,8 @@ tools:
     subtools:
       - name: <サブツール名>
         args: [<引数>, ...]
+        beforeExec: <実行前に実行するスクリプト>
+        afterExec: <実行後に実行するスクリプト>
         params:
           <パラメータ名>:
             description: <パラメータの説明>
@@ -154,6 +158,8 @@ tools:
         subtools:
           - name: <子サブツール名>
             args: [<引数>, ...]
+            beforeExec: <実行前に実行するスクリプト>
+            afterExec: <実行後に実行するスクリプト>
             params:
               <パラメータ名>:
                 description: <パラメータの説明>
@@ -176,7 +182,18 @@ tools:
    - 実行するコマンドの配列
    - 最初の要素が実行ファイル名、以降がデフォルト引数
 
-4. **パラメータ (params)**
+4. **ライフサイクルフック (beforeExec, afterExec)**
+   - beforeExec: ツールの実行前に実行されるスクリプト
+     - シェルスクリプト形式で記述
+     - パラメータをテンプレート変数として使用可能 (例: {{.param}})
+     - 親ツールのbeforeExecが最初に実行され、その後子ツールのbeforeExecが実行される
+   - afterExec: ツールの実行後に実行されるスクリプト
+     - シェルスクリプト形式で記述
+     - パラメータをテンプレート変数として使用可能
+     - 子ツールのafterExecが最初に実行され、その後親ツールのafterExecが実行される
+   - 実行順序: parent.beforeExec → child.beforeExec → main script → child.afterExec → parent.afterExec
+
+5. **パラメータ (params)**
    - ツール実行時に必要なパラメータの定義
    - 各パラメータは以下の属性を持つ：
      - description: パラメータの説明
@@ -188,7 +205,7 @@ tools:
      - 子サブツールで同名のパラメータを定義した場合、子の定義が優先される
      - 継承されたパラメータは、コマンドラインで指定可能
 
-5. **サブツール (subtools)**
+6. **サブツール (subtools)**
    - ツールのサブコマンド
    - 各サブツールは以下の属性を持つ：
      - name: サブツール名

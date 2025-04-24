@@ -36,7 +36,7 @@ tools:
       seconds:
         description: The number of seconds to sleep
         type: string
-        required: false
+        required: true
     subtools:
       - name: short
         args: ["1"]
@@ -50,8 +50,13 @@ tools:
             description: The number of seconds to sleep
             type: string
             required: true
+            validate:
+              - danger_level: high
         args: ["{{.seconds}}"]
         danger_level: high
+        param_refs:
+          seconds:
+            required: true
   
   - name: bash
     script: "#!/bin/bash\necho 'Basic bash script'"
@@ -109,3 +114,44 @@ tools:
           done
           echo "Loop completed"
         danger_level: high
+
+  - name: lifecycle
+    command:
+      - echo
+    beforeExec: |
+      #!/bin/bash
+      echo "Root before_exec"
+    afterExec: |
+      #!/bin/bash
+      echo "Root after_exec"
+    subtools:
+      - name: test
+        beforeExec: |
+          #!/bin/bash
+          echo "Subtool before_exec"
+        script: |
+          #!/bin/bash
+          echo "Main script execution"
+        afterExec: |
+          #!/bin/bash
+          echo "Subtool after_exec"
+        params:
+          dummy:
+            description: Dummy parameter for testing
+            type: string
+            required: false
+      - name: with-params
+        beforeExec: |
+          #!/bin/bash
+          echo "Before exec with param: {{.param}}"
+        script: |
+          #!/bin/bash
+          echo "Main script with param: {{.param}}"
+        afterExec: |
+          #!/bin/bash
+          echo "After exec with param: {{.param}}"
+        params:
+          param:
+            description: Test parameter
+            type: string
+            required: true
