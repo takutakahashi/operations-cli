@@ -11,6 +11,7 @@ import (
 	"github.com/takutakahashi/operation-mcp/pkg/config"
 	"github.com/takutakahashi/operation-mcp/pkg/danger"
 	"github.com/takutakahashi/operation-mcp/pkg/executor"
+	"github.com/takutakahashi/operation-mcp/pkg/logger"
 )
 
 // Info represents a tool or subtool for hierarchical display
@@ -27,6 +28,7 @@ type Manager struct {
 	dangerManager *danger.Manager
 	execInstance  executor.Executor
 	compiledTools map[string]*CompiledTool
+	logger        logger.Logger
 }
 
 // CompiledTool represents a compiled tool
@@ -56,6 +58,7 @@ func NewManager(cfg *config.Config) *Manager {
 		config:        cfg,
 		dangerManager: danger.NewManager(cfg.Actions),
 		compiledTools: make(map[string]*CompiledTool),
+		logger:        logger.NewNullLogger(), // デフォルトはログを出力しない
 	}
 
 	// Compile all tools and subtools into flat structure
@@ -157,6 +160,11 @@ func (m *Manager) WithExecutor(exec executor.Executor) {
 	m.execInstance = exec
 }
 
+// WithLogger sets the logger for the tool manager
+func (m *Manager) WithLogger(l logger.Logger) {
+	m.logger = l
+}
+
 // FindTool finds a tool by its name
 func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config.Parameter, string, string, string, error) {
 	tool, exists := m.compiledTools[toolPath]
@@ -169,6 +177,10 @@ func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config
 
 // ExecuteTool executes a tool with the given parameters
 func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (string, error) {
+	// Log tool execution
+	m.logger.Debug("Executing tool: %s", toolPath)
+	m.logger.Debug("Parameters: %v", paramValues)
+
 	// Find the tool
 	command, script, params, dangerLevel, beforeExec, afterExec, err := m.FindTool(toolPath)
 	if err != nil {
@@ -181,6 +193,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 	parentTool := m.getParentTool(toolPath)
 
 	if parentTool != nil && parentTool.BeforeExec != "" {
+		m.logger.Debug("Executing parent beforeExec: %s", parentTool.BeforeExec)
 		output, err := executeScript(parentTool.BeforeExec, paramValues)
 		if err != nil {
 			return "", fmt.Errorf("failed to execute parent beforeExec: %w", err)
@@ -190,6 +203,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 
 	// Execute beforeExec if it exists
 	if beforeExec != "" {
+		m.logger.Debug("Executing beforeExec: %s", beforeExec)
 		output, err := executeScript(beforeExec, paramValues)
 		if err != nil {
 			return "", fmt.Errorf("failed to execute beforeExec: %w", err)
@@ -211,6 +225,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 
 	// Execute afterExec if it exists
 	if afterExec != "" {
+		m.logger.Debug("Executing afterExec: %s", afterExec)
 		output, err := executeScript(afterExec, paramValues)
 		if err != nil {
 			return "", fmt.Errorf("failed to execute afterExec: %w", err)
@@ -220,6 +235,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 
 	// Execute parent afterExec if it exists
 	if parentTool != nil && parentTool.AfterExec != "" {
+		m.logger.Debug("Executing parent afterExec: %s", parentTool.AfterExec)
 		output, err := executeScript(parentTool.AfterExec, paramValues)
 		if err != nil {
 			return "", fmt.Errorf("failed to execute parent afterExec: %w", err)
@@ -227,6 +243,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 		outputs = append(outputs, strings.TrimSpace(output))
 	}
 
+	m.logger.Debug("Tool execution completed successfully")
 	return strings.Join(outputs, "\n"), nil
 }
 

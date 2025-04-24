@@ -3,56 +3,15 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"io"
-	"log"
 	"os"
-	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/spf13/cobra"
+	"github.com/takutakahashi/operation-mcp/pkg/logger"
 	"github.com/takutakahashi/operation-mcp/pkg/tool"
 )
-
-var (
-	logFile *os.File
-	logger  *log.Logger
-)
-
-func init() {
-	// 環境変数からログディレクトリを取得
-	logDir := os.Getenv("OM_LOG_DIR")
-	if logDir == "" {
-		// 環境変数が設定されていない場合はログを出力しない
-		logger = log.New(io.Discard, "", 0)
-		return
-	}
-
-	// ログディレクトリの作成
-	if err := os.MkdirAll(logDir, 0755); err != nil {
-		// エラー時はログを出力しない
-		logger = log.New(io.Discard, "", 0)
-		return
-	}
-
-	// ログファイル名にタイムスタンプを追加
-	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	logPath := filepath.Join(logDir, fmt.Sprintf("mcp-server_%s.log", timestamp))
-
-	var err error
-	logFile, err = os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		// エラー時はログを出力しない
-		logger = log.New(io.Discard, "", 0)
-		return
-	}
-
-	// ログの設定（ファイルのみに出力）
-	logger = log.New(logFile, "", log.LstdFlags)
-	logger.Printf("MCP Server starting, log file: %s", logPath)
-}
 
 var mcpServerCmd = &cobra.Command{
 	Use:   "mcp-server",
@@ -61,11 +20,28 @@ var mcpServerCmd = &cobra.Command{
 as MCP Tools for LLM applications. The server communicates over stdin/stdout by default.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if toolMgr == nil {
-			logger.Println("Error: No tools available. Please provide a valid configuration file.")
+			fmt.Println("Error: No tools available. Please provide a valid configuration file.")
 			return
 		}
 
-		logger.Println("Initializing MCP server...")
+		// ロガーの設定
+		logDir := os.Getenv("OM_LOG_DIR")
+		var l logger.Logger
+		if logDir != "" {
+			fileLogger, err := logger.NewFileLogger(logDir)
+			if err != nil {
+				fmt.Printf("Warning: Failed to create file logger: %v\n", err)
+				l = logger.NewStdoutLogger()
+			} else {
+				l = fileLogger
+				defer fileLogger.Close()
+			}
+		} else {
+			l = logger.NewStdoutLogger()
+		}
+		toolMgr.WithLogger(l)
+
+		l.Println("Starting MCP server...")
 
 		// Create MCP server
 		s := server.NewMCPServer(
@@ -74,21 +50,21 @@ as MCP Tools for LLM applications. The server communicates over stdin/stdout by 
 		)
 
 		// Register all tools from compiledTools
-		logger.Println("Registering tools...")
+		l.Println("Registering tools...")
 		for toolPath, compiledTool := range toolMgr.GetCompiledTools() {
-			logger.Printf("Registering tool: %s", toolPath)
+			l.Printf("Registering tool: %s", toolPath)
 			toolInfo := tool.Info{
 				Name:        toolPath,
 				Description: "",
 				Params:      compiledTool.Params,
 			}
-			registerTool(s, toolInfo, "")
+			registerTool(s, toolInfo, "", l)
 		}
 
-		logger.Println("Starting stdio server...")
+		l.Println("Starting stdio server...")
 		// Start the stdio server
 		if err := server.ServeStdio(s); err != nil {
-			logger.Printf("Fatal error: Server error: %v\n", err)
+			l.Printf("Fatal error: Server error: %v\n", err)
 			os.Exit(1)
 		}
 	},
@@ -99,13 +75,13 @@ func AddMCPServerCommand(root *cobra.Command) {
 	root.AddCommand(mcpServerCmd)
 }
 
-func registerTool(s *server.MCPServer, toolInfo tool.Info, parentPath string) {
+func registerTool(s *server.MCPServer, toolInfo tool.Info, parentPath string, l logger.Logger) {
 	toolPath := toolInfo.Name
 	if parentPath != "" {
 		toolPath = parentPath + "_" + toolInfo.Name
 	}
 
-	logger.Printf("Registering tool handler for: %s", toolPath)
+	l.Printf("Registering tool handler for: %s", toolPath)
 
 	// Create tool options
 	opts := []mcp.ToolOption{
@@ -147,20 +123,20 @@ func registerTool(s *server.MCPServer, toolInfo tool.Info, parentPath string) {
 	// Create and register the tool
 	t := mcp.NewTool(toolPath, opts...)
 	s.AddTool(t, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		logger.Printf("Received tool call request for: %s", toolPath)
-		logger.Printf("Request parameters: %v", request.Params.Arguments)
-		return executeHandler(ctx, request)
+		l.Printf("Received tool call request for: %s", toolPath)
+		l.Printf("Request parameters: %v", request.Params.Arguments)
+		return executeHandler(ctx, request, l)
 	})
 
 	// Register subtools
 	for _, subtool := range toolInfo.Subtools {
-		registerTool(s, subtool, toolPath)
+		registerTool(s, subtool, toolPath, l)
 	}
 }
 
-func executeHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func executeHandler(ctx context.Context, request mcp.CallToolRequest, l logger.Logger) (*mcp.CallToolResult, error) {
 	if toolMgr == nil {
-		logger.Println("Error: Tool manager is not initialized")
+		l.Println("Error: Tool manager is not initialized")
 		return mcp.NewToolResultError("Tool manager is not initialized"), nil
 	}
 
@@ -168,8 +144,8 @@ func executeHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.Call
 	toolName := strings.ReplaceAll(request.Params.Name, " ", "_")
 
 	// Add debug logging
-	logger.Printf("Executing tool: %s", toolName)
-	logger.Printf("Parameters: %v", request.Params.Arguments)
+	l.Printf("Executing tool: %s", toolName)
+	l.Printf("Parameters: %v", request.Params.Arguments)
 
 	// Convert parameters to string map
 	params := make(map[string]string)
@@ -183,15 +159,12 @@ func executeHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.Call
 	}
 
 	// Execute the tool
-	logger.Printf("Starting tool execution with parameters: %v", params)
 	output, err := toolMgr.ExecuteTool(toolName, params)
 	if err != nil {
-		logger.Printf("Error executing tool: %v", err)
-		logger.Printf("Tool output: %s", output)
+		l.Printf("Error executing tool: %v", err)
 		return mcp.NewToolResultError(fmt.Sprintf("%v\n%s", err, output)), nil
 	}
 
-	logger.Printf("Tool execution completed successfully")
-	logger.Printf("Tool output: %s", output)
+	l.Printf("Tool execution completed successfully")
 	return mcp.NewToolResultText(output), nil
 }

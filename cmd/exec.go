@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"github.com/takutakahashi/operation-mcp/pkg/logger"
 )
 
 // execCmd represents the exec command
@@ -19,6 +20,9 @@ If no subtool is specified, the main tool will be executed.`,
 		if toolMgr == nil {
 			return fmt.Errorf("tool manager not initialized")
 		}
+
+		// execコマンドでは標準出力ロガーを使用
+		toolMgr.WithLogger(logger.NewStdoutLogger())
 
 		toolName := args[0]
 		var subtoolName string
@@ -52,9 +56,13 @@ If no subtool is specified, the main tool will be executed.`,
 		if err != nil {
 			return err
 		}
-		fmt.Println(output)
+		fmt.Print(output)
 		return nil
 	},
+}
+
+func init() {
+	execCmd.Flags().StringArrayP("set", "s", []string{}, "Set a parameter (format: name=value)")
 }
 
 // AddExecCommand adds the exec command to the root command
