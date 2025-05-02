@@ -53,18 +53,24 @@ func loadFromGitHubRelease(githubURL string) ([]byte, error) {
 		return nil, fmt.Errorf("invalid GitHub Release URL %s: %w", githubURL, err)
 	}
 
-	client, err := defaultGitHubClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GitHub client: %w", err)
+	return readFromGitHubRelease(nil, owner, repo, assetPath, tag)
+}
+
+// isGitHubReleaseURL checks if a path is a GitHub Release URL
+func isGitHubReleaseURL(path string) bool {
+	if !strings.HasPrefix(path, "github_release://") {
+		return false
 	}
 
-	body, err := client.GetReleaseAsset(context.Background(), owner, repo, assetPath, tag)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get release asset: %w", err)
-	}
-	defer body.Close()
+	parts := strings.SplitN(strings.TrimPrefix(path, "github_release://"), "@", 2)
+	components := strings.SplitN(parts[0], "/", 3)
 
-	return io.ReadAll(body)
+	// Check if we have owner, repo, and path components
+	if len(components) < 3 || components[0] == "" || components[1] == "" || components[2] == "" {
+		return false
+	}
+
+	return true
 }
 
 // parseGitHubReleaseURL は、GitHub ReleaseのURLをパースします
@@ -78,12 +84,10 @@ func parseGitHubReleaseURL(githubURL string) (owner, repo, assetPath, tag string
 	path := parts[0]
 	if len(parts) > 1 {
 		tag = parts[1]
-	} else {
-		tag = "main"
 	}
 
 	components := strings.SplitN(path, "/", 3)
-	if len(components) < 3 {
+	if len(components) < 3 || components[0] == "" || components[1] == "" || components[2] == "" {
 		return "", "", "", "", fmt.Errorf("invalid GitHub Release URL path: %s", path)
 	}
 
@@ -108,5 +112,32 @@ func resolveGitHubReleaseImportPath(baseURL, importPath string) (string, error) 
 	baseDir := path.Dir(basePath)
 	resolvedPath := path.Join(baseDir, importPath)
 
-	return fmt.Sprintf("github_release://%s/%s/%s@%s", owner, repo, resolvedPath, tag), nil
+	if tag != "" {
+		return fmt.Sprintf("github_release://%s/%s/%s@%s", owner, repo, resolvedPath, tag), nil
+	}
+	return fmt.Sprintf("github_release://%s/%s/%s", owner, repo, resolvedPath), nil
+}
+
+// readFromGitHubRelease reads configuration from a GitHub Release URL
+func readFromGitHubRelease(client githubClient, owner, repo, assetPath, tag string) ([]byte, error) {
+	if client == nil {
+		var err error
+		client, err = defaultGitHubClient()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create GitHub client: %w", err)
+		}
+	}
+
+	// タグが指定されていない場合は "main" をデフォルト値として使用
+	if tag == "" {
+		tag = "main"
+	}
+
+	body, err := client.GetReleaseAsset(context.Background(), owner, repo, assetPath, tag)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get release asset: %w", err)
+	}
+	defer body.Close()
+
+	return io.ReadAll(body)
 }

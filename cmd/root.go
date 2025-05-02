@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -14,6 +15,7 @@ import (
 	"github.com/takutakahashi/operation-mcp/pkg/config"
 	"github.com/takutakahashi/operation-mcp/pkg/executor"
 	"github.com/takutakahashi/operation-mcp/pkg/tool"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -128,47 +130,68 @@ func Execute() {
 func loadConfig() error {
 	fmt.Fprintf(os.Stderr, "Loading config from: %s\n", configFile)
 
-	// Load config using Viper
-	if configFile != "" {
-		absPath, err := filepath.Abs(configFile)
-		if err != nil {
-			return fmt.Errorf("failed to get absolute path for %s: %w", configFile, err)
-		}
-		fmt.Fprintf(os.Stderr, "Using absolute path: %s\n", absPath)
+	var configData []byte
+	var err error
 
-		// Load config with imports
-		loadedCfg, err := config.LoadConfig(absPath)
+	// Check if configFile is a URL
+	if strings.HasPrefix(configFile, "http://") || strings.HasPrefix(configFile, "https://") {
+		configData, err = fetchConfigFromURL(configFile)
 		if err != nil {
-			return fmt.Errorf("error loading config file %s: %w", absPath, err)
+			return fmt.Errorf("error loading config from URL %s: %w", configFile, err)
 		}
-		cfg = loadedCfg
-
-		fmt.Fprintf(os.Stderr, "Config loaded successfully. Tools: %d\n", len(cfg.Tools))
 	} else {
-		// Check for config in home directory
-		home, err := os.UserHomeDir()
-		if err == nil {
-			homeConfig := filepath.Join(home, ".operations", "config.yaml")
-			if _, err := os.Stat(homeConfig); err == nil {
-				configFile = homeConfig
+		// Load config using Viper
+		if configFile != "" {
+			absPath, err := filepath.Abs(configFile)
+			if err != nil {
+				return fmt.Errorf("failed to get absolute path for %s: %w", configFile, err)
 			}
-		}
+			fmt.Fprintf(os.Stderr, "Using absolute path: %s\n", absPath)
 
-		// Check for config in current directory
-		if configFile == "" {
-			if _, err := os.Stat("operations.yaml"); err == nil {
-				configFile = "operations.yaml"
-			} else if _, err := os.Stat("config.yaml"); err == nil {
-				configFile = "config.yaml"
+			// Load config with imports
+			loadedCfg, err := config.LoadConfig(absPath)
+			if err != nil {
+				return fmt.Errorf("error loading config file %s: %w", absPath, err)
 			}
-		}
+			cfg = loadedCfg
 
-		if configFile == "" {
-			return fmt.Errorf("no configuration file found")
-		}
+			fmt.Fprintf(os.Stderr, "Config loaded successfully. Tools: %d\n", len(cfg.Tools))
+		} else {
+			// Check for config in home directory
+			home, err := os.UserHomeDir()
+			if err == nil {
+				homeConfig := filepath.Join(home, ".operations", "config.yaml")
+				if _, err := os.Stat(homeConfig); err == nil {
+					configFile = homeConfig
+				}
+			}
 
-		// Load the found config file
-		return loadConfig()
+			// Check for config in current directory
+			if configFile == "" {
+				if _, err := os.Stat("operations.yaml"); err == nil {
+					configFile = "operations.yaml"
+				} else if _, err := os.Stat("config.yaml"); err == nil {
+					configFile = "config.yaml"
+				}
+			}
+
+			if configFile == "" {
+				return fmt.Errorf("no configuration file found")
+			}
+
+			// Load the found config file
+			return loadConfig()
+		}
+	}
+
+	// If we have config data from URL, parse it
+	if configData != nil {
+		var loadedCfg config.Config
+		if err := yaml.Unmarshal(configData, &loadedCfg); err != nil {
+			return fmt.Errorf("error parsing config data: %w", err)
+		}
+		cfg = &loadedCfg
+		fmt.Fprintf(os.Stderr, "Config loaded successfully from URL. Tools: %d\n", len(cfg.Tools))
 	}
 
 	return nil

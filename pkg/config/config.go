@@ -121,20 +121,36 @@ func LoadConfig(configPath string) (*Config, error) {
 		}
 	}
 
-	// 設定ファイルの絶対パスを取得
-	absPath, err := filepath.Abs(configPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get absolute path for %s: %w", configPath, err)
+	// URLスキームに基づいて適切な読み込み処理を実行
+	switch {
+	case strings.HasPrefix(configPath, "s3://"):
+		// Initialize the visited paths map
+		visitedPaths := make(map[string]bool)
+		return loadConfigWithImports(configPath, visitedPaths)
+	case strings.HasPrefix(configPath, "github_release://"):
+		// Initialize the visited paths map
+		visitedPaths := make(map[string]bool)
+		return loadConfigWithImports(configPath, visitedPaths)
+	case strings.HasPrefix(configPath, "http://") || strings.HasPrefix(configPath, "https://"):
+		// Initialize the visited paths map
+		visitedPaths := make(map[string]bool)
+		return loadConfigWithImports(configPath, visitedPaths)
+	default:
+		// 設定ファイルの絶対パスを取得
+		absPath, err := filepath.Abs(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get absolute path for %s: %w", configPath, err)
+		}
+		configPath = absPath
+
+		fmt.Fprintf(os.Stderr, "Loading config from: %s\n", configPath)
+
+		// Initialize the visited paths map
+		visitedPaths := make(map[string]bool)
+
+		// Load the config with import handling
+		return loadConfigWithImports(configPath, visitedPaths)
 	}
-	configPath = absPath
-
-	fmt.Fprintf(os.Stderr, "Loading config from: %s\n", configPath)
-
-	// Initialize the visited paths map
-	visitedPaths := make(map[string]bool)
-
-	// Load the config with import handling
-	return loadConfigWithImports(configPath, visitedPaths)
 }
 
 // loadConfigWithImports loads a configuration file and processes its imports

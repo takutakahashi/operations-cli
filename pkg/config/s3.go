@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/url"
 	"path"
 	"regexp"
 	"strings"
@@ -23,22 +22,24 @@ func isS3URL(path string) bool {
 	return s3URLPattern.MatchString(path)
 }
 
-// parseS3URL parses an S3 URL and returns the bucket and key
+// parseS3URL parses an S3 URL into bucket and key components
 func parseS3URL(s3URL string) (bucket, key string, err error) {
-	if !strings.HasPrefix(s3URL, "s3://") {
+	if !isS3URL(s3URL) {
 		return "", "", fmt.Errorf("invalid S3 URL format: %s", s3URL)
 	}
 
-	u, err := url.Parse(s3URL)
-	if err != nil {
-		return "", "", err
+	// Remove the "s3://" prefix
+	path := strings.TrimPrefix(s3URL, "s3://")
+
+	// Split into bucket and key
+	parts := strings.SplitN(path, "/", 2)
+	if len(parts) == 0 || parts[0] == "" {
+		return "", "", fmt.Errorf("invalid S3 URL: bucket is empty")
 	}
 
-	bucket = u.Host
-	key = strings.TrimPrefix(u.Path, "/")
-
-	if bucket == "" || key == "" {
-		return "", "", fmt.Errorf("invalid S3 URL: bucket or key is empty")
+	bucket = parts[0]
+	if len(parts) > 1 {
+		key = parts[1]
 	}
 
 	return bucket, key, nil
@@ -49,8 +50,11 @@ type s3Client interface {
 	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 }
 
-// defaultS3Client は、デフォルトのS3クライアントを返します
-func defaultS3Client() (s3Client, error) {
+// defaultS3ClientFunc is a function type that returns an s3Client
+type defaultS3ClientFunc func() (s3Client, error)
+
+// defaultS3Client is a variable that holds the function to create a default S3 client
+var defaultS3Client defaultS3ClientFunc = func() (s3Client, error) {
 	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
 		return nil, err

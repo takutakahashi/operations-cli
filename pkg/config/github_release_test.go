@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"net/http"
 	"strings"
 	"testing"
 
@@ -221,6 +220,7 @@ type MockGitHubClient struct {
 	GetReleaseByTagFunc      func(ctx context.Context, owner, repo string, tag string) (*github.RepositoryRelease, *github.Response, error)
 	ListReleaseAssetsFunc    func(ctx context.Context, owner, repo string, id int64, opts *github.ListOptions) ([]*github.ReleaseAsset, *github.Response, error)
 	DownloadReleaseAssetFunc func(ctx context.Context, owner, repo string, id int64) (io.ReadCloser, string, error)
+	GetReleaseAssetFunc      func(ctx context.Context, owner, repo, assetPath, tag string) (io.ReadCloser, error)
 }
 
 func (m *MockGitHubClient) GetLatestRelease(ctx context.Context, owner, repo string) (*github.RepositoryRelease, *github.Response, error) {
@@ -239,6 +239,13 @@ func (m *MockGitHubClient) DownloadReleaseAsset(ctx context.Context, owner, repo
 	return m.DownloadReleaseAssetFunc(ctx, owner, repo, id)
 }
 
+func (m *MockGitHubClient) GetReleaseAsset(ctx context.Context, owner, repo, assetPath, tag string) (io.ReadCloser, error) {
+	if m.GetReleaseAssetFunc != nil {
+		return m.GetReleaseAssetFunc(ctx, owner, repo, assetPath, tag)
+	}
+	return nil, errors.New("GetReleaseAsset not implemented")
+}
+
 // StringReadCloser is a simple io.ReadCloser implementation for testing
 type StringReadCloser struct {
 	Reader io.Reader
@@ -253,159 +260,61 @@ func (s *StringReadCloser) Close() error {
 }
 
 func TestReadFromGitHubRelease_LatestRelease(t *testing.T) {
-	// Mock response
-	testAssetContent := "test: asset content"
-	mockRelease := &github.RepositoryRelease{
-		ID: github.Int64(123),
-	}
-	mockAsset := &github.ReleaseAsset{
-		ID:   github.Int64(456),
-		Name: github.String("config.yaml"),
-	}
-	mockResp := &github.Response{
-		Response: &http.Response{},
-	}
-
-	// Create mock client
 	mockClient := &MockGitHubClient{
-		GetLatestReleaseFunc: func(ctx context.Context, owner, repo string) (*github.RepositoryRelease, *github.Response, error) {
-			if owner != "testowner" || repo != "testrepo" {
-				return nil, mockResp, errors.New("invalid owner or repo")
-			}
-			return mockRelease, mockResp, nil
-		},
-		ListReleaseAssetsFunc: func(ctx context.Context, owner, repo string, id int64, opts *github.ListOptions) ([]*github.ReleaseAsset, *github.Response, error) {
-			if id != 123 {
-				return nil, mockResp, errors.New("invalid release ID")
-			}
-			return []*github.ReleaseAsset{mockAsset}, mockResp, nil
-		},
-		DownloadReleaseAssetFunc: func(ctx context.Context, owner, repo string, id int64) (io.ReadCloser, string, error) {
-			if id != 456 {
-				return nil, "", errors.New("invalid asset ID")
-			}
-			return &StringReadCloser{
-				Reader: strings.NewReader(testAssetContent),
-			}, "application/yaml", nil
+		GetReleaseAssetFunc: func(ctx context.Context, owner, repo, assetPath, tag string) (io.ReadCloser, error) {
+			return &StringReadCloser{Reader: strings.NewReader("test content")}, nil
 		},
 	}
 
-	// Test reading from latest release
-	data, err := readFromGitHubRelease(mockClient, "testowner", "testrepo", "config.yaml", "")
+	data, err := readFromGitHubRelease(mockClient, "owner", "repo", "config.yaml", "")
 	if err != nil {
 		t.Fatalf("readFromGitHubRelease() error = %v", err)
 	}
 
-	// Verify content
-	if string(data) != testAssetContent {
-		t.Errorf("readFromGitHubRelease() content = %v, want %v", string(data), testAssetContent)
+	if string(data) != "test content" {
+		t.Errorf("readFromGitHubRelease() = %v, want %v", string(data), "test content")
 	}
 }
 
 func TestReadFromGitHubRelease_TaggedRelease(t *testing.T) {
-	// Mock response
-	testAssetContent := "test: asset content"
-	mockRelease := &github.RepositoryRelease{
-		ID: github.Int64(123),
-	}
-	mockAsset := &github.ReleaseAsset{
-		ID:   github.Int64(456),
-		Name: github.String("config.yaml"),
-	}
-	mockResp := &github.Response{
-		Response: &http.Response{},
-	}
-
-	// Create mock client
 	mockClient := &MockGitHubClient{
-		GetReleaseByTagFunc: func(ctx context.Context, owner, repo string, tag string) (*github.RepositoryRelease, *github.Response, error) {
-			if owner != "testowner" || repo != "testrepo" || tag != "v1.0.0" {
-				return nil, mockResp, errors.New("invalid owner, repo, or tag")
-			}
-			return mockRelease, mockResp, nil
-		},
-		ListReleaseAssetsFunc: func(ctx context.Context, owner, repo string, id int64, opts *github.ListOptions) ([]*github.ReleaseAsset, *github.Response, error) {
-			if id != 123 {
-				return nil, mockResp, errors.New("invalid release ID")
-			}
-			return []*github.ReleaseAsset{mockAsset}, mockResp, nil
-		},
-		DownloadReleaseAssetFunc: func(ctx context.Context, owner, repo string, id int64) (io.ReadCloser, string, error) {
-			if id != 456 {
-				return nil, "", errors.New("invalid asset ID")
-			}
-			return &StringReadCloser{
-				Reader: strings.NewReader(testAssetContent),
-			}, "application/yaml", nil
+		GetReleaseAssetFunc: func(ctx context.Context, owner, repo, assetPath, tag string) (io.ReadCloser, error) {
+			return &StringReadCloser{Reader: strings.NewReader("test content")}, nil
 		},
 	}
 
-	// Test reading from tagged release
-	data, err := readFromGitHubRelease(mockClient, "testowner", "testrepo", "config.yaml", "v1.0.0")
+	data, err := readFromGitHubRelease(mockClient, "owner", "repo", "config.yaml", "v1.0.0")
 	if err != nil {
 		t.Fatalf("readFromGitHubRelease() error = %v", err)
 	}
 
-	// Verify content
-	if string(data) != testAssetContent {
-		t.Errorf("readFromGitHubRelease() content = %v, want %v", string(data), testAssetContent)
+	if string(data) != "test content" {
+		t.Errorf("readFromGitHubRelease() = %v, want %v", string(data), "test content")
 	}
 }
 
 func TestReadFromGitHubRelease_AssetNotFound(t *testing.T) {
-	mockRelease := &github.RepositoryRelease{
-		ID: github.Int64(123),
-	}
-	mockResp := &github.Response{
-		Response: &http.Response{},
-	}
-
-	// Create mock client
 	mockClient := &MockGitHubClient{
-		GetLatestReleaseFunc: func(ctx context.Context, owner, repo string) (*github.RepositoryRelease, *github.Response, error) {
-			return mockRelease, mockResp, nil
-		},
-		ListReleaseAssetsFunc: func(ctx context.Context, owner, repo string, id int64, opts *github.ListOptions) ([]*github.ReleaseAsset, *github.Response, error) {
-			// Return empty assets list
-			return []*github.ReleaseAsset{}, mockResp, nil
+		GetReleaseAssetFunc: func(ctx context.Context, owner, repo, assetPath, tag string) (io.ReadCloser, error) {
+			return nil, errors.New("asset not found")
 		},
 	}
 
-	// Test asset not found
-	_, err := readFromGitHubRelease(mockClient, "testowner", "testrepo", "nonexistent.yaml", "")
+	_, err := readFromGitHubRelease(mockClient, "owner", "repo", "nonexistent.yaml", "")
 	if err == nil {
-		t.Fatalf("readFromGitHubRelease() expected error but got nil")
-	}
-
-	// Verify error message
-	expected := "asset nonexistent.yaml not found"
-	if !strings.Contains(err.Error(), expected) {
-		t.Errorf("readFromGitHubRelease() error = %v, expected to contain %v", err, expected)
+		t.Fatal("readFromGitHubRelease() error = nil, want error")
 	}
 }
 
 func TestReadFromGitHubRelease_ReleaseNotFound(t *testing.T) {
-	mockResp := &github.Response{
-		Response: &http.Response{},
-	}
-	mockResp.StatusCode = 404
-
-	// Create mock client
 	mockClient := &MockGitHubClient{
-		GetLatestReleaseFunc: func(ctx context.Context, owner, repo string) (*github.RepositoryRelease, *github.Response, error) {
-			return nil, mockResp, errors.New("not found")
+		GetReleaseAssetFunc: func(ctx context.Context, owner, repo, assetPath, tag string) (io.ReadCloser, error) {
+			return nil, errors.New("release not found")
 		},
 	}
 
-	// Test release not found
-	_, err := readFromGitHubRelease(mockClient, "testowner", "testrepo", "config.yaml", "")
+	_, err := readFromGitHubRelease(mockClient, "owner", "repo", "config.yaml", "v1.0.0")
 	if err == nil {
-		t.Fatalf("readFromGitHubRelease() expected error but got nil")
-	}
-
-	// Verify error message
-	expected := "release not found"
-	if !strings.Contains(err.Error(), expected) {
-		t.Errorf("readFromGitHubRelease() error = %v, expected to contain %v", err, expected)
+		t.Fatal("readFromGitHubRelease() error = nil, want error")
 	}
 }

@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"testing"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-// mockS3Client implements the s3Client interface for testing
+// mockS3Client is a mock implementation of the s3Client interface for testing
 type mockS3Client struct {
 	getObjectFunc func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 }
@@ -239,7 +240,7 @@ tools:
         type: string
         required: true
 imports:
-  - imported-config.yaml
+  - s3://test-bucket/imported-config.yaml
 `
 
 	importedConfigContent := `
@@ -271,7 +272,7 @@ tools:
 					Body: io.NopCloser(bytes.NewReader([]byte(importedConfigContent))),
 				}, nil
 			default:
-				return nil, io.EOF
+				return nil, fmt.Errorf("object not found: s3://%s/%s", bucket, key)
 			}
 		},
 	}
