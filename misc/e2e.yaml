@@ -1,13 +1,4 @@
-actions:
-  - danger_level: low
-    type: confirm
-    message: "This is a low-risk operation. Proceed?"
-  - danger_level: medium
-    type: confirm
-    message: "This is a medium-risk operation. Are you sure you want to proceed?"
-  - danger_level: high
-    type: confirm
-    message: "This is a high-risk operation. Please confirm carefully before proceeding."
+actions: []
 
 tools:
   - name: echo

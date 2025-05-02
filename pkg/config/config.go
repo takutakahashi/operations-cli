@@ -143,8 +143,6 @@ func LoadConfig(configPath string) (*Config, error) {
 		}
 		configPath = absPath
 
-		fmt.Fprintf(os.Stderr, "Loading config from: %s\n", configPath)
-
 		// Initialize the visited paths map
 		visitedPaths := make(map[string]bool)
 
@@ -162,8 +160,6 @@ func loadConfigWithImports(configPath string, visitedPaths map[string]bool) (*Co
 
 	// このパスを訪問済みとしてマーク
 	visitedPaths[configPath] = true
-
-	fmt.Fprintf(os.Stderr, "Processing config file: %s\n", configPath)
 
 	var data []byte
 	var err error
@@ -197,10 +193,8 @@ func loadConfigWithImports(configPath string, visitedPaths map[string]bool) (*Co
 	// インポートの処理
 	if len(config.Imports) > 0 {
 		baseDir := filepath.Dir(configPath)
-		fmt.Fprintf(os.Stderr, "Base directory for imports: %s\n", baseDir)
 
 		for _, importPath := range config.Imports {
-			fmt.Fprintf(os.Stderr, "Processing import: %s\n", importPath)
 			var resolvedPath string
 
 			switch {
@@ -217,8 +211,6 @@ func loadConfigWithImports(configPath string, visitedPaths map[string]bool) (*Co
 					resolvedPath = filepath.Join(baseDir, importPath)
 				}
 			}
-
-			fmt.Fprintf(os.Stderr, "Resolved import path: %s\n", resolvedPath)
 
 			// ファイルの存在確認
 			if !strings.HasPrefix(resolvedPath, "s3://") &&

@@ -128,8 +128,6 @@ func Execute() {
 
 // loadConfig loads the configuration file
 func loadConfig() error {
-	fmt.Fprintf(os.Stderr, "Loading config from: %s\n", configFile)
-
 	var configData []byte
 	var err error
 
@@ -146,7 +144,6 @@ func loadConfig() error {
 			if err != nil {
 				return fmt.Errorf("failed to get absolute path for %s: %w", configFile, err)
 			}
-			fmt.Fprintf(os.Stderr, "Using absolute path: %s\n", absPath)
 
 			// Load config with imports
 			loadedCfg, err := config.LoadConfig(absPath)
@@ -154,8 +151,6 @@ func loadConfig() error {
 				return fmt.Errorf("error loading config file %s: %w", absPath, err)
 			}
 			cfg = loadedCfg
-
-			fmt.Fprintf(os.Stderr, "Config loaded successfully. Tools: %d\n", len(cfg.Tools))
 		} else {
 			// Check for config in home directory
 			home, err := os.UserHomeDir()
@@ -191,7 +186,6 @@ func loadConfig() error {
 			return fmt.Errorf("error parsing config data: %w", err)
 		}
 		cfg = &loadedCfg
-		fmt.Fprintf(os.Stderr, "Config loaded successfully from URL. Tools: %d\n", len(cfg.Tools))
 	}
 
 	return nil
