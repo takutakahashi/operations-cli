@@ -1,13 +1,11 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -126,68 +124,51 @@ func Execute() {
 	}
 }
 
+// loadConfig loads the configuration file
 func loadConfig() error {
-	// Reset Viper to ensure clean state
-	viper.Reset()
+	fmt.Fprintf(os.Stderr, "Loading config from: %s\n", configFile)
 
-	// Set environment variable prefix
-	viper.SetEnvPrefix("OPERATIONS")
-	viper.AutomaticEnv()
-
-	// Bind flags to Viper
-	bindFlags(rootCmd)
-
+	// Load config using Viper
 	if configFile != "" {
-		// Check if the config file is a URL
-		if strings.HasPrefix(configFile, "http://") || strings.HasPrefix(configFile, "https://") {
-			// Fetch config from URL
-			data, err := fetchConfigFromURL(configFile)
-			if err != nil {
-				return fmt.Errorf("failed to fetch config from URL: %w", err)
-			}
-
-			// Set the config type based on file extension
-			ext := filepath.Ext(configFile)
-			if ext != "" {
-				viper.SetConfigType(ext[1:]) // Remove the dot from the extension
-			} else {
-				// Default to YAML if no extension is found
-				viper.SetConfigType("yaml")
-			}
-
-			// Read config from the fetched data
-			if err := viper.ReadConfig(bytes.NewBuffer(data)); err != nil {
-				return fmt.Errorf("failed to read config data: %w", err)
-			}
-		} else {
-			// Local file
-			viper.SetConfigFile(configFile)
-
-			// Load config file
-			if err := viper.ReadInConfig(); err != nil {
-				return fmt.Errorf("failed to read config file: %w", err)
-			}
+		absPath, err := filepath.Abs(configFile)
+		if err != nil {
+			return fmt.Errorf("failed to get absolute path for %s: %w", configFile, err)
 		}
+		fmt.Fprintf(os.Stderr, "Using absolute path: %s\n", absPath)
+
+		// Load config with imports
+		loadedCfg, err := config.LoadConfig(absPath)
+		if err != nil {
+			return fmt.Errorf("error loading config file %s: %w", absPath, err)
+		}
+		cfg = loadedCfg
+
+		fmt.Fprintf(os.Stderr, "Config loaded successfully. Tools: %d\n", len(cfg.Tools))
 	} else {
-		// デフォルトの設定ファイルを探す
-		viper.SetConfigName("config")
-		viper.SetConfigType("yaml")
-		viper.AddConfigPath(".")
-		viper.AddConfigPath("$HOME/.operations")
-
-		// Load config file
-		if err := viper.ReadInConfig(); err != nil {
-			if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-				return err
+		// Check for config in home directory
+		home, err := os.UserHomeDir()
+		if err == nil {
+			homeConfig := filepath.Join(home, ".operations", "config.yaml")
+			if _, err := os.Stat(homeConfig); err == nil {
+				configFile = homeConfig
 			}
-			// ConfigFileNotFoundError の場合は無視（デフォルト値を使用）
 		}
-	}
 
-	// Unmarshal config
-	cfg = &config.Config{}
-	if err := viper.Unmarshal(cfg); err != nil {
-		return err
+		// Check for config in current directory
+		if configFile == "" {
+			if _, err := os.Stat("operations.yaml"); err == nil {
+				configFile = "operations.yaml"
+			} else if _, err := os.Stat("config.yaml"); err == nil {
+				configFile = "config.yaml"
+			}
+		}
+
+		if configFile == "" {
+			return fmt.Errorf("no configuration file found")
+		}
+
+		// Load the found config file
+		return loadConfig()
 	}
 
 	return nil

@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path/filepath"
+	"net/url"
+	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -23,37 +24,62 @@ func isS3URL(path string) bool {
 }
 
 // parseS3URL parses an S3 URL and returns the bucket and key
-func parseS3URL(url string) (bucket, key string, err error) {
-	matches := s3URLPattern.FindStringSubmatch(url)
-	if len(matches) < 2 {
-		return "", "", fmt.Errorf("invalid S3 URL format: %s", url)
+func parseS3URL(s3URL string) (bucket, key string, err error) {
+	if !strings.HasPrefix(s3URL, "s3://") {
+		return "", "", fmt.Errorf("invalid S3 URL format: %s", s3URL)
 	}
-	bucket = matches[1]
-	// Key might be missing if URL is just s3://bucket
-	if len(matches) > 2 && matches[2] != "" {
-		key = matches[2]
+
+	u, err := url.Parse(s3URL)
+	if err != nil {
+		return "", "", err
 	}
+
+	bucket = u.Host
+	key = strings.TrimPrefix(u.Path, "/")
+
+	if bucket == "" || key == "" {
+		return "", "", fmt.Errorf("invalid S3 URL: bucket or key is empty")
+	}
+
 	return bucket, key, nil
 }
 
-// s3Client wraps AWS S3 client and its methods for easier testing
+// s3Client インターフェースは、S3操作に必要なメソッドを定義します
 type s3Client interface {
 	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 }
 
-// A function type for creating S3 clients
-var defaultS3Client = func() (s3Client, error) {
-	// Use the default AWS configuration
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	cfg, err := config.LoadDefaultConfig(ctx)
+// defaultS3Client は、デフォルトのS3クライアントを返します
+func defaultS3Client() (s3Client, error) {
+	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("failed to load AWS configuration: %w", err)
+		return nil, err
+	}
+	return s3.NewFromConfig(cfg), nil
+}
+
+// loadFromS3 は、S3から設定ファイルを読み込みます
+func loadFromS3(s3URL string) ([]byte, error) {
+	bucket, key, err := parseS3URL(s3URL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid S3 URL %s: %w", s3URL, err)
 	}
 
-	// Create an S3 client
-	return s3.NewFromConfig(cfg), nil
+	client, err := defaultS3Client()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create S3 client: %w", err)
+	}
+
+	output, err := client.GetObject(context.Background(), &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get object from S3: %w", err)
+	}
+	defer output.Body.Close()
+
+	return io.ReadAll(output.Body)
 }
 
 // readFromS3 reads a file from S3 using the provided S3 client
@@ -75,31 +101,19 @@ func readFromS3(client s3Client, bucket, key string) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
-// resolveS3ImportPath resolves a relative import path against an S3 base URL
+// resolveS3ImportPath は、S3のインポートパスを解決します
 func resolveS3ImportPath(baseURL, importPath string) (string, error) {
-	// If importPath is already an S3 URL, return it as is
-	if isS3URL(importPath) {
+	if strings.HasPrefix(importPath, "s3://") {
 		return importPath, nil
 	}
 
-	// Parse the base S3 URL
-	bucket, key, err := parseS3URL(baseURL)
+	baseBucket, baseKey, err := parseS3URL(baseURL)
 	if err != nil {
-		return "", fmt.Errorf("invalid base S3 URL: %w", err)
+		return "", err
 	}
 
-	// Get the directory of the base S3 key
-	baseDir := filepath.Dir(key)
+	baseDir := path.Dir(baseKey)
+	resolvedKey := path.Join(baseDir, importPath)
 
-	// Resolve the import path relative to the base directory
-	resolvedKey := filepath.Join(baseDir, importPath)
-
-	// Clean up the resolved key (remove unnecessary "./" and handle "../" properly)
-	resolvedKey = filepath.Clean(resolvedKey)
-
-	// Ensure there's no leading slash in the key
-	resolvedKey = strings.TrimPrefix(resolvedKey, "/")
-
-	// Construct the full S3 URL
-	return fmt.Sprintf("s3://%s/%s", bucket, resolvedKey), nil
+	return fmt.Sprintf("s3://%s/%s", baseBucket, resolvedKey), nil
 }

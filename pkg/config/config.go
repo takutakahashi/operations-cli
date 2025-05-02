@@ -2,11 +2,19 @@ package config
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
+
+func init() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+}
 
 // Config represents the main configuration structure
 type Config struct {
@@ -113,6 +121,15 @@ func LoadConfig(configPath string) (*Config, error) {
 		}
 	}
 
+	// 設定ファイルの絶対パスを取得
+	absPath, err := filepath.Abs(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute path for %s: %w", configPath, err)
+	}
+	configPath = absPath
+
+	fmt.Fprintf(os.Stderr, "Loading config from: %s\n", configPath)
+
 	// Initialize the visited paths map
 	visitedPaths := make(map[string]bool)
 
@@ -122,119 +139,92 @@ func LoadConfig(configPath string) (*Config, error) {
 
 // loadConfigWithImports loads a configuration file and processes its imports
 func loadConfigWithImports(configPath string, visitedPaths map[string]bool) (*Config, error) {
-	// Check for circular imports using the original path
+	// 循環参照のチェック
 	if visitedPaths[configPath] {
 		return nil, fmt.Errorf("circular import detected: %s", configPath)
 	}
 
-	// Mark this file as visited using the original path
+	// このパスを訪問済みとしてマーク
 	visitedPaths[configPath] = true
+
+	fmt.Fprintf(os.Stderr, "Processing config file: %s\n", configPath)
 
 	var data []byte
 	var err error
 
-	// Check if the configPath is an S3 URL
-	if isS3URL(configPath) {
-		// Parse S3 URL to get bucket and key
-		bucket, key, err := parseS3URL(configPath)
-		if err != nil {
-			return nil, fmt.Errorf("invalid S3 URL %s: %w", configPath, err)
+	// URLスキームに基づいて適切な読み込み処理を実行
+	switch {
+	case strings.HasPrefix(configPath, "s3://"):
+		data, err = loadFromS3(configPath)
+	case strings.HasPrefix(configPath, "github_release://"):
+		data, err = loadFromGitHubRelease(configPath)
+	case strings.HasPrefix(configPath, "http://") || strings.HasPrefix(configPath, "https://"):
+		data, err = loadFromHTTP(configPath)
+	default:
+		// ファイルの存在確認
+		if _, statErr := os.Stat(configPath); statErr != nil {
+			return nil, fmt.Errorf("config file not found: %s", configPath)
 		}
-
-		// Get S3 client
-		client, err := defaultS3Client()
-		if err != nil {
-			return nil, fmt.Errorf("failed to create S3 client: %w", err)
-		}
-
-		// Read the config file from S3
-		data, err = readFromS3(client, bucket, key)
-		if err != nil {
-			return nil, fmt.Errorf("error reading config file from S3 %s: %w", configPath, err)
-		}
-	} else if isGitHubReleaseURL(configPath) {
-		// Parse GitHub Release URL to get owner, repo, path, and tag
-		owner, repo, path, tag, err := parseGitHubReleaseURL(configPath)
-		if err != nil {
-			return nil, fmt.Errorf("invalid GitHub Release URL %s: %w", configPath, err)
-		}
-
-		// Get GitHub client
-		client, err := defaultGitHubClient()
-		if err != nil {
-			return nil, fmt.Errorf("failed to create GitHub client: %w", err)
-		}
-
-		// Read the config file from GitHub Release
-		data, err = readFromGitHubRelease(client, owner, repo, path, tag)
-		if err != nil {
-			return nil, fmt.Errorf("error reading config file from GitHub Release %s: %w", configPath, err)
-		}
-	} else {
-		// For regular file paths, convert to absolute path first
-		absPath, err := filepath.Abs(configPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get absolute path for %s: %w", configPath, err)
-		}
-
-		// Read the config file from local filesystem
-		data, err = os.ReadFile(absPath)
-		if err != nil {
-			return nil, fmt.Errorf("error reading config file %s: %w", absPath, err)
-		}
-		// Use absolute path for local files
-		configPath = absPath
+		data, err = os.ReadFile(configPath)
 	}
 
-	// Parse the YAML
+	if err != nil {
+		return nil, fmt.Errorf("error reading config file %s: %w", configPath, err)
+	}
+
+	// 設定をパース
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("error parsing config file %s: %w", configPath, err)
 	}
 
-	// Process imports if present
+	// インポートの処理
 	if len(config.Imports) > 0 {
+		baseDir := filepath.Dir(configPath)
+		fmt.Fprintf(os.Stderr, "Base directory for imports: %s\n", baseDir)
+
 		for _, importPath := range config.Imports {
-			var resolvedImportPath string
+			fmt.Fprintf(os.Stderr, "Processing import: %s\n", importPath)
+			var resolvedPath string
 
-			// Handle import path resolution differently based on source type
-			if isS3URL(configPath) {
-				// For S3 URLs, resolve the import path relative to the S3 base path
-				resolvedImportPath, err = resolveS3ImportPath(configPath, importPath)
-				if err != nil {
-					return nil, fmt.Errorf("failed to resolve S3 import path %s relative to %s: %w",
-						importPath, configPath, err)
-				}
-			} else if isGitHubReleaseURL(configPath) {
-				// For GitHub Release URLs, resolve the import path relative to the GitHub Release base path
-				resolvedImportPath, err = resolveGitHubReleaseImportPath(configPath, importPath)
-				if err != nil {
-					return nil, fmt.Errorf("failed to resolve GitHub Release import path %s relative to %s: %w",
-						importPath, configPath, err)
-				}
-			} else {
-				// For regular file paths, resolve the import path relative to the base directory
-				baseDir := filepath.Dir(configPath)
-				if !filepath.IsAbs(importPath) {
-					resolvedImportPath = filepath.Join(baseDir, importPath)
+			switch {
+			case strings.HasPrefix(importPath, "s3://"):
+				resolvedPath = importPath
+			case strings.HasPrefix(importPath, "github_release://"):
+				resolvedPath = importPath
+			case strings.HasPrefix(importPath, "http://") || strings.HasPrefix(importPath, "https://"):
+				resolvedPath = importPath
+			default:
+				if filepath.IsAbs(importPath) {
+					resolvedPath = importPath
 				} else {
-					resolvedImportPath = importPath
+					resolvedPath = filepath.Join(baseDir, importPath)
 				}
 			}
 
-			// Load the imported config
-			importedConfig, err := loadConfigWithImports(resolvedImportPath, visitedPaths)
-			if err != nil {
-				return nil, fmt.Errorf("error loading imported config %s: %w", resolvedImportPath, err)
+			fmt.Fprintf(os.Stderr, "Resolved import path: %s\n", resolvedPath)
+
+			// ファイルの存在確認
+			if !strings.HasPrefix(resolvedPath, "s3://") &&
+				!strings.HasPrefix(resolvedPath, "github_release://") &&
+				!strings.HasPrefix(resolvedPath, "http://") &&
+				!strings.HasPrefix(resolvedPath, "https://") {
+				if _, statErr := os.Stat(resolvedPath); statErr != nil {
+					return nil, fmt.Errorf("imported config file not found: %s", resolvedPath)
+				}
 			}
 
-			// Merge the imported config with the current config
-			// Current config takes precedence over imported config
+			importedConfig, err := loadConfigWithImports(resolvedPath, visitedPaths)
+			if err != nil {
+				return nil, fmt.Errorf("error loading imported config %s: %w", resolvedPath, err)
+			}
+
+			// 設定のマージ
 			config = *mergeConfigs(&config, importedConfig)
 		}
 	}
 
-	// Clear the imports field to avoid processing them again
+	// インポートフィールドをクリア
 	config.Imports = nil
 
 	return &config, nil
@@ -362,4 +352,19 @@ func mergeConfigs(base *Config, imported *Config) *Config {
 	}
 
 	return base
+}
+
+// loadFromHTTP loads configuration from an HTTP(S) URL
+func loadFromHTTP(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch URL %s: %w", url, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP request failed with status code %d: %s", resp.StatusCode, url)
+	}
+
+	return io.ReadAll(resp.Body)
 }
