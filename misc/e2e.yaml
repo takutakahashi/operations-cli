@@ -118,24 +118,24 @@ tools:
   - name: lifecycle
     command:
       - echo
-    beforeExec:
+    before_exec:
       - |
         #!/bin/bash
         echo "Root before_exec"
-    afterExec:
+    after_exec:
       - |
         #!/bin/bash
         echo "Root after_exec"
     subtools:
       - name: test
-        beforeExec:
+        before_exec:
           - |
             #!/bin/bash
             echo "Subtool before_exec"
         script: |
           #!/bin/bash
           echo "Main script execution"
-        afterExec:
+        after_exec:
           - |
             #!/bin/bash
             echo "Subtool after_exec"
@@ -145,14 +145,14 @@ tools:
             type: string
             required: false
       - name: with-params
-        beforeExec:
+        before_exec:
           - |
             #!/bin/bash
             echo "Before exec with param: {{.param}}"
         script: |
           #!/bin/bash
           echo "Main script with param: {{.param}}"
-        afterExec:
+        after_exec:
           - |
             #!/bin/bash
             echo "After exec with param: {{.param}}"

@@ -418,6 +418,38 @@ func (m *Manager) ExecuteRawTool(toolPath string, args []string) (string, error)
 	return string(output), nil
 }
 
+// path から config.Tool/config.Subtool を再帰的に取得し、Name も返すよう修正
+func findToolOrSubtoolByPath(tools []config.Tool, path string) (name string, beforeExec, afterExec []string, subtools []config.Subtool) {
+	parts := strings.Split(path, "_")
+	if len(parts) == 0 {
+		return "", nil, nil, nil
+	}
+	for _, tool := range tools {
+		if strings.ReplaceAll(tool.Name, " ", "_") == parts[0] {
+			if len(parts) == 1 {
+				return tool.Name, tool.BeforeExec, tool.AfterExec, tool.Subtools
+			}
+			return findSubtoolByPath(tool.Subtools, parts[1:])
+		}
+	}
+	return "", nil, nil, nil
+}
+
+func findSubtoolByPath(subtools []config.Subtool, parts []string) (name string, beforeExec, afterExec []string, subsubtools []config.Subtool) {
+	if len(parts) == 0 {
+		return "", nil, nil, nil
+	}
+	for _, sub := range subtools {
+		if strings.ReplaceAll(sub.Name, " ", "_") == parts[0] {
+			if len(parts) == 1 {
+				return sub.Name, sub.BeforeExec, sub.AfterExec, sub.Subtools
+			}
+			return findSubtoolByPath(sub.Subtools, parts[1:])
+		}
+	}
+	return "", nil, nil, nil
+}
+
 // ListTools returns all tools and subtools defined in the config
 func (m *Manager) ListTools() map[string]config.Tool {
 	if _, _, _, _, _, _, err := m.FindTool("list"); err != nil {
@@ -426,24 +458,21 @@ func (m *Manager) ListTools() map[string]config.Tool {
 
 	result := make(map[string]config.Tool, len(m.compiledTools))
 	for path, tool := range m.compiledTools {
-		parts := strings.Split(path, ".")
-		name := strings.ReplaceAll(parts[len(parts)-1], " ", "_")
-
-		// Find the original tool in config to get its subtools
-		var subtools []config.Subtool
-		for _, configTool := range m.config.Tools {
-			if configTool.Name == name {
-				subtools = configTool.Subtools
-				break
-			}
+		name, beforeExec, afterExec, subtools := findToolOrSubtoolByPath(m.config.Tools, path)
+		if name == "" {
+			// fallback: compiledTools のキー名を使う
+			parts := strings.Split(path, ".")
+			name = strings.ReplaceAll(parts[len(parts)-1], " ", "_")
 		}
 
 		toolInfo := config.Tool{
-			Name:     name,
-			Command:  tool.Command,
-			Script:   tool.Script,
-			Params:   tool.Params,
-			Subtools: subtools,
+			Name:       name,
+			Command:    tool.Command,
+			Script:     tool.Script,
+			BeforeExec: beforeExec,
+			AfterExec:  afterExec,
+			Params:     tool.Params,
+			Subtools:   subtools,
 		}
 
 		result[path] = toolInfo
