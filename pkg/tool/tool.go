@@ -205,15 +205,13 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 	}
 
 	// beforeExecを順に実行
-	if beforeExec != nil {
-		for _, script := range beforeExec {
-			m.logger.Debug("Executing beforeExec: %s", script)
-			output, err := executeScript(script, paramValues)
-			if err != nil {
-				return "", fmt.Errorf("failed to execute beforeExec: %w", err)
-			}
-			outputs = append(outputs, strings.TrimSpace(output))
+	for _, script := range beforeExec {
+		m.logger.Debug("Executing beforeExec: %s", script)
+		output, err := executeScript(script, paramValues)
+		if err != nil {
+			return "", fmt.Errorf("failed to execute beforeExec: %w", err)
 		}
+		outputs = append(outputs, strings.TrimSpace(output))
 	}
 
 	// Validate parameters
@@ -229,15 +227,13 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 	outputs = append(outputs, strings.TrimSpace(output))
 
 	// afterExecを順に実行
-	if afterExec != nil {
-		for _, script := range afterExec {
-			m.logger.Debug("Executing afterExec: %s", script)
-			output, err := executeScript(script, paramValues)
-			if err != nil {
-				return "", fmt.Errorf("failed to execute afterExec: %w", err)
-			}
-			outputs = append(outputs, strings.TrimSpace(output))
+	for _, script := range afterExec {
+		m.logger.Debug("Executing afterExec: %s", script)
+		output, err := executeScript(script, paramValues)
+		if err != nil {
+			return "", fmt.Errorf("failed to execute afterExec: %w", err)
 		}
+		outputs = append(outputs, strings.TrimSpace(output))
 	}
 
 	// 親のafterExecを順に実行
