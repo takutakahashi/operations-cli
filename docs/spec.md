@@ -184,14 +184,14 @@ tools:
 
 4. **ライフサイクルフック (beforeExec, afterExec)**
    - beforeExec: ツールの実行前に実行されるスクリプト
-     - シェルスクリプト形式で記述
+     - シェルスクリプト形式で記述（複数スクリプトをリストで指定可能）
      - パラメータをテンプレート変数として使用可能 (例: {{.param}})
      - 親ツールのbeforeExecが最初に実行され、その後子ツールのbeforeExecが実行される
    - afterExec: ツールの実行後に実行されるスクリプト
-     - シェルスクリプト形式で記述
+     - シェルスクリプト形式で記述（複数スクリプトをリストで指定可能）
      - パラメータをテンプレート変数として使用可能
      - 子ツールのafterExecが最初に実行され、その後親ツールのafterExecが実行される
-   - 実行順序: parent.beforeExec → child.beforeExec → main script → child.afterExec → parent.afterExec
+   - 実行順序: parent.beforeExec（配列index順）→ child.beforeExec（配列index順）→ main script → child.afterExec（配列index順）→ parent.afterExec（配列index順）
 
 5. **パラメータ (params)**
    - ツール実行時に必要なパラメータの定義

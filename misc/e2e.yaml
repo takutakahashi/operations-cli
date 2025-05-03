@@ -118,38 +118,44 @@ tools:
   - name: lifecycle
     command:
       - echo
-    beforeExec: |
-      #!/bin/bash
-      echo "Root before_exec"
-    afterExec: |
-      #!/bin/bash
-      echo "Root after_exec"
+    beforeExec:
+      - |
+        #!/bin/bash
+        echo "Root before_exec"
+    afterExec:
+      - |
+        #!/bin/bash
+        echo "Root after_exec"
     subtools:
       - name: test
-        beforeExec: |
-          #!/bin/bash
-          echo "Subtool before_exec"
+        beforeExec:
+          - |
+            #!/bin/bash
+            echo "Subtool before_exec"
         script: |
           #!/bin/bash
           echo "Main script execution"
-        afterExec: |
-          #!/bin/bash
-          echo "Subtool after_exec"
+        afterExec:
+          - |
+            #!/bin/bash
+            echo "Subtool after_exec"
         params:
           dummy:
             description: Dummy parameter for testing
             type: string
             required: false
       - name: with-params
-        beforeExec: |
-          #!/bin/bash
-          echo "Before exec with param: {{.param}}"
+        beforeExec:
+          - |
+            #!/bin/bash
+            echo "Before exec with param: {{.param}}"
         script: |
           #!/bin/bash
           echo "Main script with param: {{.param}}"
-        afterExec: |
-          #!/bin/bash
-          echo "After exec with param: {{.param}}"
+        afterExec:
+          - |
+            #!/bin/bash
+            echo "After exec with param: {{.param}}"
         params:
           param:
             description: Test parameter

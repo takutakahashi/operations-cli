@@ -202,14 +202,16 @@ tools:
   - name: backup
     command:
       - backup
-    beforeExec: |
-      #!/bin/bash
-      echo "Starting backup process..."
-      # バックアップ前の準備処理
-    afterExec: |
-      #!/bin/bash
-      echo "Backup completed."
-      # バックアップ後のクリーンアップ処理
+    beforeExec:
+      - |
+        #!/bin/bash
+        echo "Starting backup process..."
+        # バックアップ前の準備処理
+    afterExec:
+      - |
+        #!/bin/bash
+        echo "Backup completed."
+        # バックアップ後のクリーンアップ処理
     params:
       target:
         description: Backup target directory
@@ -218,14 +220,16 @@ tools:
     subtools:
       - name: database
         args: ["--type", "database", "--target", "{{.target}}"]
-        beforeExec: |
-          #!/bin/bash
-          echo "Preparing database backup..."
-          # データベース固有の準備処理
-        afterExec: |
-          #!/bin/bash
-          echo "Database backup completed."
-          # データベース固有のクリーンアップ処理
+        beforeExec:
+          - |
+            #!/bin/bash
+            echo "Preparing database backup..."
+            # データベース固有の準備処理
+        afterExec:
+          - |
+            #!/bin/bash
+            echo "Database backup completed."
+            # データベース固有のクリーンアップ処理
         danger_level: high
 
   - name: deploy
@@ -233,14 +237,16 @@ tools:
       #!/bin/bash
       # デプロイメントスクリプト
       kubectl apply -f {{.manifest}}
-    beforeExec: |
-      #!/bin/bash
-      # デプロイ前の検証
-      kubectl diff -f {{.manifest}}
-    afterExec: |
-      #!/bin/bash
-      # デプロイ後の確認
-      kubectl get pods -n {{.namespace}}
+    beforeExec:
+      - |
+        #!/bin/bash
+        # デプロイ前の検証
+        kubectl diff -f {{.manifest}}
+    afterExec:
+      - |
+        #!/bin/bash
+        # デプロイ後の確認
+        kubectl get pods -n {{.namespace}}
     params:
       manifest:
         description: Kubernetes manifest file
@@ -262,16 +268,16 @@ The tool supports lifecycle hooks that allow you to execute scripts before and a
 - `afterExec`: Executed after the main command
 
 Both hooks:
-- Support shell script format
+- Support shell script format (multiple scripts can be specified as a list)
 - Can use tool parameters as template variables
 - Are inherited through the tool hierarchy
 
 Execution order:
-1. Parent tool's beforeExec
-2. Child tool's beforeExec
+1. All parent tool's beforeExec (in order of array index)
+2. All child tool's beforeExec (in order of array index)
 3. Main command/script
-4. Child tool's afterExec
-5. Parent tool's afterExec
+4. All child tool's afterExec (in order of array index)
+5. All parent tool's afterExec (in order of array index)
 
 Example usage:
 
