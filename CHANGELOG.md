@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.6.17](https://github.com/takutakahashi/operation-mcp/compare/v0.6.16...v0.6.17) - 2025-05-03
+- parse config by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/95
+- flatten config when it built by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/97
+- multiple exec script by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/99
+
 ## [v0.6.16](https://github.com/takutakahashi/operation-mcp/compare/v0.6.15...v0.6.16) - 2025-04-24
 - log handler by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/91
 
