@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.18](https://github.com/takutakahashi/operation-mcp/compare/v0.6.17...v0.6.18) - 2025-05-03
+- use cfg.Tool by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/101
+
 ## [v0.6.17](https://github.com/takutakahashi/operation-mcp/compare/v0.6.16...v0.6.17) - 2025-05-03
 - parse config by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/95
 - flatten config when it built by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/97
