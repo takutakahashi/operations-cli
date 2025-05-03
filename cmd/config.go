@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/takutakahashi/operation-mcp/pkg/config"
+	"github.com/takutakahashi/operation-mcp/pkg/tool"
 	"gopkg.in/yaml.v3"
 )
 
@@ -30,7 +31,26 @@ var configBuildCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("設定ファイルの読み込みに失敗しました: %w", err)
 		}
-		out, err := yaml.Marshal(cfg)
+		mgr := tool.NewManager(cfg)
+		compiled := mgr.GetCompiledTools()
+		var flatTools []config.Tool
+		for name, t := range compiled {
+			flatTools = append(flatTools, config.Tool{
+				Name:       name,
+				Command:    t.Command,
+				Script:     t.Script,
+				BeforeExec: t.BeforeExec,
+				AfterExec:  t.AfterExec,
+				Params:     t.Params,
+				// DangerLevelはconfig.Toolには無いので無視
+			})
+		}
+		outCfg := &config.Config{
+			Actions: cfg.Actions,
+			SSH:     cfg.SSH,
+			Tools:   flatTools,
+		}
+		out, err := yaml.Marshal(outCfg)
 		if err != nil {
 			return fmt.Errorf("YAMLへの変換に失敗しました: %w", err)
 		}
