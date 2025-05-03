@@ -134,11 +134,11 @@ func TestFindTool(t *testing.T) {
 	if dangerLevel != "" {
 		t.Errorf("Expected empty danger level, got '%s'", dangerLevel)
 	}
-	if beforeExec != "" {
-		t.Errorf("Expected empty beforeExec, got '%s'", beforeExec)
+	if len(beforeExec) > 0 {
+		t.Errorf("Expected empty beforeExec, got '%v'", beforeExec)
 	}
-	if afterExec != "" {
-		t.Errorf("Expected empty afterExec, got '%s'", afterExec)
+	if len(afterExec) > 0 {
+		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
 
 	// Test finding subtool
@@ -161,11 +161,11 @@ func TestFindTool(t *testing.T) {
 	if dangerLevel != "" {
 		t.Errorf("Expected empty danger level, got '%s'", dangerLevel)
 	}
-	if beforeExec != "" {
-		t.Errorf("Expected empty beforeExec, got '%s'", beforeExec)
+	if len(beforeExec) > 0 {
+		t.Errorf("Expected empty beforeExec, got '%v'", beforeExec)
 	}
-	if afterExec != "" {
-		t.Errorf("Expected empty afterExec, got '%s'", afterExec)
+	if len(afterExec) > 0 {
+		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
 
 	// Test finding subtool with danger level
@@ -188,11 +188,11 @@ func TestFindTool(t *testing.T) {
 	if dangerLevel != "high" {
 		t.Errorf("Expected danger level 'high', got '%s'", dangerLevel)
 	}
-	if beforeExec != "" {
-		t.Errorf("Expected empty beforeExec, got '%s'", beforeExec)
+	if len(beforeExec) > 0 {
+		t.Errorf("Expected empty beforeExec, got '%v'", beforeExec)
 	}
-	if afterExec != "" {
-		t.Errorf("Expected empty afterExec, got '%s'", afterExec)
+	if len(afterExec) > 0 {
+		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
 
 	// Test finding script tool
@@ -212,11 +212,11 @@ func TestFindTool(t *testing.T) {
 	if dangerLevel != "" {
 		t.Errorf("Expected empty danger level, got '%s'", dangerLevel)
 	}
-	if beforeExec != "" {
-		t.Errorf("Expected empty beforeExec, got '%s'", beforeExec)
+	if len(beforeExec) > 0 {
+		t.Errorf("Expected empty beforeExec, got '%v'", beforeExec)
 	}
-	if afterExec != "" {
-		t.Errorf("Expected empty afterExec, got '%s'", afterExec)
+	if len(afterExec) > 0 {
+		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
 
 	// Test finding script subtool
@@ -236,11 +236,11 @@ func TestFindTool(t *testing.T) {
 	if dangerLevel != "" {
 		t.Errorf("Expected empty danger level, got '%s'", dangerLevel)
 	}
-	if beforeExec != "" {
-		t.Errorf("Expected empty beforeExec, got '%s'", beforeExec)
+	if len(beforeExec) > 0 {
+		t.Errorf("Expected empty beforeExec, got '%v'", beforeExec)
 	}
-	if afterExec != "" {
-		t.Errorf("Expected empty afterExec, got '%s'", afterExec)
+	if len(afterExec) > 0 {
+		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
 
 	// Test finding nested subtool
@@ -275,11 +275,11 @@ func TestFindTool(t *testing.T) {
 	if dangerLevel != "" {
 		t.Errorf("Expected empty danger level, got '%s'", dangerLevel)
 	}
-	if beforeExec != "" {
-		t.Errorf("Expected empty beforeExec, got '%s'", beforeExec)
+	if len(beforeExec) > 0 {
+		t.Errorf("Expected empty beforeExec, got '%v'", beforeExec)
 	}
-	if afterExec != "" {
-		t.Errorf("Expected empty afterExec, got '%s'", afterExec)
+	if len(afterExec) > 0 {
+		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
 
 	// Test finding non-existent tool
@@ -485,14 +485,14 @@ func TestBeforeAfterExec(t *testing.T) {
 		Tools: []config.Tool{
 			{
 				Name:       "parent",
-				BeforeExec: "echo 'parent before'",
-				AfterExec:  "echo 'parent after'",
+				BeforeExec: []string{"echo 'parent before'"},
+				AfterExec:  []string{"echo 'parent after'"},
 				Subtools: []config.Subtool{
 					{
 						Name:       "child",
-						BeforeExec: "echo 'child before'",
+						BeforeExec: []string{"echo 'child before'"},
 						Script:     "echo 'child main'",
-						AfterExec:  "echo 'child after'",
+						AfterExec:  []string{"echo 'child after'"},
 					},
 				},
 			},

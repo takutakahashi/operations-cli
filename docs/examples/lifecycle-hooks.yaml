@@ -3,15 +3,17 @@ tools:
   - name: kubernetes
     command:
       - kubectl
-    beforeExec: |
-      #!/bin/bash
-      echo "=== Kubernetes Operation Start ==="
-      echo "Current context: $(kubectl config current-context)"
-      echo "Current namespace: {{.namespace}}"
-    afterExec: |
-      #!/bin/bash
-      echo "=== Kubernetes Operation Complete ==="
-      echo "Operation completed at $(date)"
+    beforeExec:
+      - |
+        #!/bin/bash
+        echo "=== Kubernetes Operation Start ==="
+        echo "Current context: $(kubectl config current-context)"
+        echo "Current namespace: {{.namespace}}"
+    afterExec:
+      - |
+        #!/bin/bash
+        echo "=== Kubernetes Operation Complete ==="
+        echo "Operation completed at $(date)"
     params:
       namespace:
         description: Target Kubernetes namespace
@@ -20,18 +22,20 @@ tools:
     subtools:
       - name: deploy
         args: ["apply", "-f", "{{.manifest}}", "-n", "{{.namespace}}"]
-        beforeExec: |
-          #!/bin/bash
-          echo "Validating manifest..."
-          kubectl diff -f {{.manifest}} -n {{.namespace}} || true
-          echo "Checking namespace resources..."
-          kubectl get all -n {{.namespace}}
-        afterExec: |
-          #!/bin/bash
-          echo "Checking deployment status..."
-          kubectl get pods -n {{.namespace}}
-          echo "Checking service endpoints..."
-          kubectl get endpoints -n {{.namespace}}
+        beforeExec:
+          - |
+            #!/bin/bash
+            echo "Validating manifest..."
+            kubectl diff -f {{.manifest}} -n {{.namespace}} || true
+            echo "Checking namespace resources..."
+            kubectl get all -n {{.namespace}}
+        afterExec:
+          - |
+            #!/bin/bash
+            echo "Checking deployment status..."
+            kubectl get pods -n {{.namespace}}
+            echo "Checking service endpoints..."
+            kubectl get endpoints -n {{.namespace}}
         params:
           manifest:
             description: Kubernetes manifest file
@@ -42,15 +46,17 @@ tools:
   - name: database
     command:
       - mysql
-    beforeExec: |
-      #!/bin/bash
-      echo "=== Database Operation Start ==="
-      echo "Checking database connection..."
-      mysql -h {{.host}} -u {{.user}} -p{{.password}} -e "SELECT 1;" > /dev/null
-    afterExec: |
-      #!/bin/bash
-      echo "=== Database Operation Complete ==="
-      echo "Operation completed at $(date)"
+    beforeExec:
+      - |
+        #!/bin/bash
+        echo "=== Database Operation Start ==="
+        echo "Checking database connection..."
+        mysql -h {{.host}} -u {{.user}} -p{{.password}} -e "SELECT 1;" > /dev/null
+    afterExec:
+      - |
+        #!/bin/bash
+        echo "=== Database Operation Complete ==="
+        echo "Operation completed at $(date)"
     params:
       host:
         description: Database host
@@ -67,17 +73,19 @@ tools:
     subtools:
       - name: backup
         args: ["-h", "{{.host}}", "-u", "{{.user}}", "-p{{.password}}", "{{.database}}", "-e", "source {{.backup_script}}"]
-        beforeExec: |
-          #!/bin/bash
-          echo "Preparing for database backup..."
-          echo "Target database: {{.database}}"
-          echo "Checking available disk space..."
-          df -h /backup
-        afterExec: |
-          #!/bin/bash
-          echo "Verifying backup..."
-          ls -lh "/backup/{{.database}}_$(date +%Y%m%d).sql"
-          echo "Backup size: $(du -h /backup/{{.database}}_$(date +%Y%m%d).sql | cut -f1)"
+        beforeExec:
+          - |
+            #!/bin/bash
+            echo "Preparing for database backup..."
+            echo "Target database: {{.database}}"
+            echo "Checking available disk space..."
+            df -h /backup
+        afterExec:
+          - |
+            #!/bin/bash
+            echo "Verifying backup..."
+            ls -lh "/backup/{{.database}}_$(date +%Y%m%d).sql"
+            echo "Backup size: $(du -h /backup/{{.database}}_$(date +%Y%m%d).sql | cut -f1)"
         params:
           database:
             description: Database name to backup

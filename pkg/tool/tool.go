@@ -36,8 +36,8 @@ type CompiledTool struct {
 	Name        string
 	Command     []string
 	Script      string
-	BeforeExec  string
-	AfterExec   string
+	BeforeExec  []string
+	AfterExec   []string
 	Params      map[string]config.Parameter
 	DangerLevel string
 }
@@ -48,8 +48,8 @@ type ToolInfo struct {
 	Script      string
 	Params      map[string]config.Parameter
 	DangerLevel string
-	BeforeExec  string
-	AfterExec   string
+	BeforeExec  []string
+	AfterExec   []string
 }
 
 // NewManager creates a new tool manager
@@ -166,10 +166,10 @@ func (m *Manager) WithLogger(l logger.Logger) {
 }
 
 // FindTool finds a tool by its name
-func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config.Parameter, string, string, string, error) {
+func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config.Parameter, string, []string, []string, error) {
 	tool, exists := m.compiledTools[toolPath]
 	if !exists {
-		return nil, "", nil, "", "", "", fmt.Errorf("tool not found: %s", toolPath)
+		return nil, "", nil, "", nil, nil, fmt.Errorf("tool not found: %s", toolPath)
 	}
 
 	return tool.Command, tool.Script, tool.Params, tool.DangerLevel, tool.BeforeExec, tool.AfterExec, nil
@@ -192,23 +192,28 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 	// Get parent tool
 	parentTool := m.getParentTool(toolPath)
 
-	if parentTool != nil && parentTool.BeforeExec != "" {
-		m.logger.Debug("Executing parent beforeExec: %s", parentTool.BeforeExec)
-		output, err := executeScript(parentTool.BeforeExec, paramValues)
-		if err != nil {
-			return "", fmt.Errorf("failed to execute parent beforeExec: %w", err)
+	// 親のbeforeExecを順に実行
+	if parentTool != nil && parentTool.BeforeExec != nil {
+		for _, script := range parentTool.BeforeExec {
+			m.logger.Debug("Executing parent beforeExec: %s", script)
+			output, err := executeScript(script, paramValues)
+			if err != nil {
+				return "", fmt.Errorf("failed to execute parent beforeExec: %w", err)
+			}
+			outputs = append(outputs, strings.TrimSpace(output))
 		}
-		outputs = append(outputs, strings.TrimSpace(output))
 	}
 
-	// Execute beforeExec if it exists
-	if beforeExec != "" {
-		m.logger.Debug("Executing beforeExec: %s", beforeExec)
-		output, err := executeScript(beforeExec, paramValues)
-		if err != nil {
-			return "", fmt.Errorf("failed to execute beforeExec: %w", err)
+	// beforeExecを順に実行
+	if beforeExec != nil {
+		for _, script := range beforeExec {
+			m.logger.Debug("Executing beforeExec: %s", script)
+			output, err := executeScript(script, paramValues)
+			if err != nil {
+				return "", fmt.Errorf("failed to execute beforeExec: %w", err)
+			}
+			outputs = append(outputs, strings.TrimSpace(output))
 		}
-		outputs = append(outputs, strings.TrimSpace(output))
 	}
 
 	// Validate parameters
@@ -223,24 +228,28 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 	}
 	outputs = append(outputs, strings.TrimSpace(output))
 
-	// Execute afterExec if it exists
-	if afterExec != "" {
-		m.logger.Debug("Executing afterExec: %s", afterExec)
-		output, err := executeScript(afterExec, paramValues)
-		if err != nil {
-			return "", fmt.Errorf("failed to execute afterExec: %w", err)
+	// afterExecを順に実行
+	if afterExec != nil {
+		for _, script := range afterExec {
+			m.logger.Debug("Executing afterExec: %s", script)
+			output, err := executeScript(script, paramValues)
+			if err != nil {
+				return "", fmt.Errorf("failed to execute afterExec: %w", err)
+			}
+			outputs = append(outputs, strings.TrimSpace(output))
 		}
-		outputs = append(outputs, strings.TrimSpace(output))
 	}
 
-	// Execute parent afterExec if it exists
-	if parentTool != nil && parentTool.AfterExec != "" {
-		m.logger.Debug("Executing parent afterExec: %s", parentTool.AfterExec)
-		output, err := executeScript(parentTool.AfterExec, paramValues)
-		if err != nil {
-			return "", fmt.Errorf("failed to execute parent afterExec: %w", err)
+	// 親のafterExecを順に実行
+	if parentTool != nil && parentTool.AfterExec != nil {
+		for _, script := range parentTool.AfterExec {
+			m.logger.Debug("Executing parent afterExec: %s", script)
+			output, err := executeScript(script, paramValues)
+			if err != nil {
+				return "", fmt.Errorf("failed to execute parent afterExec: %w", err)
+			}
+			outputs = append(outputs, strings.TrimSpace(output))
 		}
-		outputs = append(outputs, strings.TrimSpace(output))
 	}
 
 	m.logger.Debug("Tool execution completed successfully")
