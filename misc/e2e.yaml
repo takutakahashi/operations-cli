@@ -116,8 +116,6 @@ tools:
         danger_level: high
 
   - name: lifecycle
-    command:
-      - echo
     beforeExec:
       - |
         #!/bin/bash

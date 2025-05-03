@@ -29,8 +29,8 @@ type Tool struct {
 	Name       string     `yaml:"name"`
 	Command    []string   `yaml:"command,omitempty"`
 	Script     string     `yaml:"script,omitempty"`
-	BeforeExec []string   `yaml:"before_exec,omitempty"`
-	AfterExec  []string   `yaml:"after_exec,omitempty"`
+	BeforeExec []string   `yaml:"beforeExec,omitempty"`
+	AfterExec  []string   `yaml:"afterExec,omitempty"`
 	Params     Parameters `yaml:"params"`
 	Subtools   []Subtool  `yaml:"subtools"`
 }
@@ -40,8 +40,8 @@ type Subtool struct {
 	Name        string     `yaml:"name"`
 	Args        []string   `yaml:"args,omitempty"`
 	Script      string     `yaml:"script,omitempty"`
-	BeforeExec  []string   `yaml:"before_exec,omitempty"`
-	AfterExec   []string   `yaml:"after_exec,omitempty"`
+	BeforeExec  []string   `yaml:"beforeExec,omitempty"`
+	AfterExec   []string   `yaml:"afterExec,omitempty"`
 	Params      Parameters `yaml:"params"`
 	DangerLevel string     `yaml:"danger_level"`
 	Subtools    []Subtool  `yaml:"subtools"`
