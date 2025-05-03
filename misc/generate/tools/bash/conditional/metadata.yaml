@@ -1,0 +1,7 @@
+params:
+  value:
+    description: The value to check in the conditional
+    type: string
+    required: true
+danger_level: medium
+script: main.sh

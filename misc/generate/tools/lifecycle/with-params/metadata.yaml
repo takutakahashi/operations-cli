@@ -1,0 +1,10 @@
+params:
+  param:
+    description: Test parameter
+    type: string
+    required: true
+script: main.sh
+beforeExec:
+- path: beforeExec/00-echo.sh
+afterExec:
+- path: afterExec/00-echo.sh

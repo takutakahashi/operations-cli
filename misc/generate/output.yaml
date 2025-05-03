@@ -1,0 +1,113 @@
+actions:
+  - danger_level: low
+    type: confirm
+    message: "This is a low-risk operation. Proceed?"
+  - danger_level: medium
+    type: confirm
+    message: "This is a medium-risk operation. Are you sure you want to proceed?"
+  - danger_level: high
+    type: confirm
+    message: "This is a high-risk operation. Please confirm carefully before proceeding."
+
+tools:
+  - name: bash
+    subtools:
+      - name: variables
+        params:
+          name:
+            description: The name to use in the script
+            type: string
+            required: true
+          count:
+            description: The count value to use in the script
+            type: string
+            required: true
+        script: |
+          #!/bin/bash
+          # Set and display variables
+          NAME="{{.name}}"
+          COUNT={{.count}}
+          echo "Hello, $NAME!"
+          echo "Count: $COUNT"
+          echo "Current date: $(date)"
+        danger_level: low
+      
+      - name: conditional
+        params:
+          value:
+            description: The value to check in the conditional
+            type: string
+            required: true
+        script: |
+          #!/bin/bash
+          # Script with conditional logic
+          VALUE={{.value}}
+          if [ $VALUE -gt 10 ]; then
+            echo "Value $VALUE is greater than 10"
+          else
+            echo "Value $VALUE is less than or equal to 10"
+          fi
+        danger_level: medium
+      
+      - name: loop
+        params:
+          iterations:
+            description: The number of iterations for the loop
+            type: string
+            required: true
+        script: |
+          #!/bin/bash
+          # Script with loop
+          ITERATIONS={{.iterations}}
+          echo "Starting loop for $ITERATIONS iterations"
+          for i in $(seq 1 $ITERATIONS); do
+            echo "Iteration $i of $ITERATIONS"
+          done
+          echo "Loop completed"
+        danger_level: high
+
+  - name: lifecycle
+    beforeExec:
+      - |
+        #!/bin/bash
+        echo "Root before_exec"
+    afterExec:
+      - |
+        #!/bin/bash
+        echo "Root after_exec"
+    subtools:
+      - name: test
+        beforeExec:
+          - |
+            #!/bin/bash
+            echo "Subtool before_exec"
+        script: |
+          #!/bin/bash
+          echo "Main script execution"
+        afterExec:
+          - |
+            #!/bin/bash
+            echo "Subtool after_exec"
+        params:
+          dummy:
+            description: Dummy parameter for testing
+            type: string
+            required: false
+      - name: with-params
+        beforeExec:
+          - |
+            #!/bin/bash
+            echo "Before exec with param: {{.param}}"
+        script: |
+          #!/bin/bash
+          echo "Main script with param: {{.param}}"
+        afterExec:
+          - |
+            #!/bin/bash
+            echo "After exec with param: {{.param}}"
+        params:
+          param:
+            description: Test parameter
+            type: string
+            required: true
+

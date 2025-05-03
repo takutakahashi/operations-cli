@@ -1,0 +1,7 @@
+tools:
+- path: ./test
+- path: ./with-params
+beforeExec:
+- path: beforeExec/00-echo.sh
+afterExec:
+- path: afterExec/00-echo.sh
