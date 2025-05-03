@@ -10,6 +10,7 @@ GO_FILES=$(shell find . -name "*.go" -type f)
 all: build
 
 # Build the application
+# cmd/config.go もビルド対象（新コマンド追加時の注意）
 build: $(BUILD_DIR)/$(BINARY_NAME)
 
 $(BUILD_DIR)/$(BINARY_NAME): $(GO_FILES)
