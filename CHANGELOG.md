@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.19](https://github.com/takutakahashi/operation-mcp/compare/v0.6.18...v0.6.19) - 2025-05-05
+- Generate config with dir by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/102
+
 ## [v0.6.18](https://github.com/takutakahashi/operation-mcp/compare/v0.6.17...v0.6.18) - 2025-05-03
 - use cfg.Tool by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/101
 
