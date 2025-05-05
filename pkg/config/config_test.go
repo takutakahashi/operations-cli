@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -606,4 +607,17 @@ tools:
 // Helper function to check if a string contains a substring
 func contains(s, substr string) bool {
 	return strings.Contains(s, substr)
+}
+
+func TestConfigBuilder_Build(t *testing.T) {
+	builder := NewConfigBuilder("../../misc/generate")
+	buf := &bytes.Buffer{}
+	err := builder.Build(buf)
+	if err != nil {
+		t.Fatalf("ConfigBuilder.Build failed: %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "actions:") || !strings.Contains(out, "tools:") {
+		t.Errorf("output does not contain expected keys: %s", out)
+	}
 }
