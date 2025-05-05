@@ -48,13 +48,17 @@ func (b *ConfigBuilder) Compile() (*Config, error) {
 	// actions
 	if acts, ok := rootMeta["actions"]; ok {
 		actsYaml, _ := yaml.Marshal(acts)
-		yaml.Unmarshal(actsYaml, &cfg.Actions)
+		if err := yaml.Unmarshal(actsYaml, &cfg.Actions); err != nil {
+			return nil, err
+		}
 	}
 	// tools
 	if tools, ok := rootMeta["tools"]; ok {
 		var toolDefs []map[string]interface{}
 		toolsYaml, _ := yaml.Marshal(tools)
-		yaml.Unmarshal(toolsYaml, &toolDefs)
+		if err := yaml.Unmarshal(toolsYaml, &toolDefs); err != nil {
+			return nil, err
+		}
 		for _, t := range toolDefs {
 			if path, ok := t["path"].(string); ok {
 				tool, err := buildTool(filepath.Join(b.RootDir, path))
@@ -95,7 +99,9 @@ func buildTool(dir string) (*Tool, error) {
 	// params
 	if params, ok := meta["params"]; ok {
 		paramsYaml, _ := yaml.Marshal(params)
-		yaml.Unmarshal(paramsYaml, &tool.Params)
+		if err := yaml.Unmarshal(paramsYaml, &tool.Params); err != nil {
+			return nil, err
+		}
 	}
 	// script
 	if script, ok := meta["script"].(string); ok {
@@ -110,7 +116,9 @@ func buildTool(dir string) (*Tool, error) {
 	if be, ok := meta["beforeExec"]; ok {
 		var beList []map[string]interface{}
 		beYaml, _ := yaml.Marshal(be)
-		yaml.Unmarshal(beYaml, &beList)
+		if err := yaml.Unmarshal(beYaml, &beList); err != nil {
+			return nil, err
+		}
 		for _, item := range beList {
 			if path, ok := item["path"].(string); ok {
 				bePath := filepath.Join(dir, path)
@@ -125,7 +133,9 @@ func buildTool(dir string) (*Tool, error) {
 	if ae, ok := meta["afterExec"]; ok {
 		var aeList []map[string]interface{}
 		aeYaml, _ := yaml.Marshal(ae)
-		yaml.Unmarshal(aeYaml, &aeList)
+		if err := yaml.Unmarshal(aeYaml, &aeList); err != nil {
+			return nil, err
+		}
 		for _, item := range aeList {
 			if path, ok := item["path"].(string); ok {
 				aePath := filepath.Join(dir, path)
@@ -141,7 +151,9 @@ func buildTool(dir string) (*Tool, error) {
 	if subs, ok := meta["tools"]; ok {
 		var subDefs []map[string]interface{}
 		subsYaml, _ := yaml.Marshal(subs)
-		yaml.Unmarshal(subsYaml, &subDefs)
+		if err := yaml.Unmarshal(subsYaml, &subDefs); err != nil {
+			return nil, err
+		}
 		for _, s := range subDefs {
 			if path, ok := s["path"].(string); ok {
 				sub, err := buildSubtool(filepath.Join(dir, path))
@@ -165,7 +177,9 @@ func buildSubtool(dir string) (*Subtool, error) {
 	sub.Name = filepath.Base(dir)
 	if params, ok := meta["params"]; ok {
 		paramsYaml, _ := yaml.Marshal(params)
-		yaml.Unmarshal(paramsYaml, &sub.Params)
+		if err := yaml.Unmarshal(paramsYaml, &sub.Params); err != nil {
+			return nil, err
+		}
 	}
 	if script, ok := meta["script"].(string); ok {
 		scriptPath := filepath.Join(dir, script)
@@ -178,7 +192,9 @@ func buildSubtool(dir string) (*Subtool, error) {
 	if be, ok := meta["beforeExec"]; ok {
 		var beList []map[string]interface{}
 		beYaml, _ := yaml.Marshal(be)
-		yaml.Unmarshal(beYaml, &beList)
+		if err := yaml.Unmarshal(beYaml, &beList); err != nil {
+			return nil, err
+		}
 		for _, item := range beList {
 			if path, ok := item["path"].(string); ok {
 				bePath := filepath.Join(dir, path)
@@ -193,7 +209,9 @@ func buildSubtool(dir string) (*Subtool, error) {
 	if ae, ok := meta["afterExec"]; ok {
 		var aeList []map[string]interface{}
 		aeYaml, _ := yaml.Marshal(ae)
-		yaml.Unmarshal(aeYaml, &aeList)
+		if err := yaml.Unmarshal(aeYaml, &aeList); err != nil {
+			return nil, err
+		}
 		for _, item := range aeList {
 			if path, ok := item["path"].(string); ok {
 				aePath := filepath.Join(dir, path)
@@ -209,7 +227,9 @@ func buildSubtool(dir string) (*Subtool, error) {
 	if subs, ok := meta["tools"]; ok {
 		var subDefs []map[string]interface{}
 		subsYaml, _ := yaml.Marshal(subs)
-		yaml.Unmarshal(subsYaml, &subDefs)
+		if err := yaml.Unmarshal(subsYaml, &subDefs); err != nil {
+			return nil, err
+		}
 		for _, s := range subDefs {
 			if path, ok := s["path"].(string); ok {
 				subsub, err := buildSubtool(filepath.Join(dir, path))
@@ -242,7 +262,9 @@ func (b *ConfigBuilder) ExportToDir(cfg *Config, outDir string) error {
 	}
 	// tools ディレクトリ作成
 	toolsDir := filepath.Join(outDir, "tools")
-	os.MkdirAll(toolsDir, 0755)
+	if err := os.MkdirAll(toolsDir, 0755); err != nil {
+		return err
+	}
 	for _, tool := range cfg.Tools {
 		if err := exportTool(&tool, filepath.Join(toolsDir, tool.Name)); err != nil {
 			return err
@@ -252,7 +274,9 @@ func (b *ConfigBuilder) ExportToDir(cfg *Config, outDir string) error {
 }
 
 func writeMetadata(path string, meta map[string]interface{}) error {
-	os.MkdirAll(filepath.Dir(path), 0755)
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
 	f, err := os.Create(path)
 	if err != nil {
 		return err
@@ -264,22 +288,30 @@ func writeMetadata(path string, meta map[string]interface{}) error {
 }
 
 func exportTool(tool *Tool, dir string) error {
-	os.MkdirAll(dir, 0755)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
 	meta := map[string]interface{}{}
 	if len(tool.Params) > 0 {
 		meta["params"] = tool.Params
 	}
 	if tool.Script != "" {
 		meta["script"] = "main.sh"
-		os.WriteFile(filepath.Join(dir, "main.sh"), []byte(tool.Script), 0755)
+		if err := os.WriteFile(filepath.Join(dir, "main.sh"), []byte(tool.Script), 0755); err != nil {
+			return err
+		}
 	}
 	if len(tool.BeforeExec) > 0 {
 		var beList []map[string]interface{}
 		for i, content := range tool.BeforeExec {
 			name := "beforeExec_%02d.sh"
 			fname := filepath.Join(dir, "beforeExec", fmt.Sprintf(name, i))
-			os.MkdirAll(filepath.Dir(fname), 0755)
-			os.WriteFile(fname, []byte(content), 0755)
+			if err := os.MkdirAll(filepath.Dir(fname), 0755); err != nil {
+				return err
+			}
+			if err := os.WriteFile(fname, []byte(content), 0755); err != nil {
+				return err
+			}
 			beList = append(beList, map[string]interface{}{"path": filepath.Join("beforeExec", fmt.Sprintf(name, i))})
 		}
 		meta["beforeExec"] = beList
@@ -289,8 +321,12 @@ func exportTool(tool *Tool, dir string) error {
 		for i, content := range tool.AfterExec {
 			name := "afterExec_%02d.sh"
 			fname := filepath.Join(dir, "afterExec", fmt.Sprintf(name, i))
-			os.MkdirAll(filepath.Dir(fname), 0755)
-			os.WriteFile(fname, []byte(content), 0755)
+			if err := os.MkdirAll(filepath.Dir(fname), 0755); err != nil {
+				return err
+			}
+			if err := os.WriteFile(fname, []byte(content), 0755); err != nil {
+				return err
+			}
 			aeList = append(aeList, map[string]interface{}{"path": filepath.Join("afterExec", fmt.Sprintf(name, i))})
 		}
 		meta["afterExec"] = aeList
@@ -301,7 +337,9 @@ func exportTool(tool *Tool, dir string) error {
 		for _, sub := range tool.Subtools {
 			name := sub.Name
 			subList = append(subList, map[string]interface{}{"path": name})
-			exportSubtool(&sub, filepath.Join(dir, name))
+			if err := exportSubtool(&sub, filepath.Join(dir, name)); err != nil {
+				return err
+			}
 		}
 		meta["tools"] = subList
 	}
@@ -309,22 +347,30 @@ func exportTool(tool *Tool, dir string) error {
 }
 
 func exportSubtool(sub *Subtool, dir string) error {
-	os.MkdirAll(dir, 0755)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
 	meta := map[string]interface{}{}
 	if len(sub.Params) > 0 {
 		meta["params"] = sub.Params
 	}
 	if sub.Script != "" {
 		meta["script"] = "main.sh"
-		os.WriteFile(filepath.Join(dir, "main.sh"), []byte(sub.Script), 0755)
+		if err := os.WriteFile(filepath.Join(dir, "main.sh"), []byte(sub.Script), 0755); err != nil {
+			return err
+		}
 	}
 	if len(sub.BeforeExec) > 0 {
 		var beList []map[string]interface{}
 		for i, content := range sub.BeforeExec {
 			name := "beforeExec_%02d.sh"
 			fname := filepath.Join(dir, "beforeExec", fmt.Sprintf(name, i))
-			os.MkdirAll(filepath.Dir(fname), 0755)
-			os.WriteFile(fname, []byte(content), 0755)
+			if err := os.MkdirAll(filepath.Dir(fname), 0755); err != nil {
+				return err
+			}
+			if err := os.WriteFile(fname, []byte(content), 0755); err != nil {
+				return err
+			}
 			beList = append(beList, map[string]interface{}{"path": filepath.Join("beforeExec", fmt.Sprintf(name, i))})
 		}
 		meta["beforeExec"] = beList
@@ -334,8 +380,12 @@ func exportSubtool(sub *Subtool, dir string) error {
 		for i, content := range sub.AfterExec {
 			name := "afterExec_%02d.sh"
 			fname := filepath.Join(dir, "afterExec", fmt.Sprintf(name, i))
-			os.MkdirAll(filepath.Dir(fname), 0755)
-			os.WriteFile(fname, []byte(content), 0755)
+			if err := os.MkdirAll(filepath.Dir(fname), 0755); err != nil {
+				return err
+			}
+			if err := os.WriteFile(fname, []byte(content), 0755); err != nil {
+				return err
+			}
 			aeList = append(aeList, map[string]interface{}{"path": filepath.Join("afterExec", fmt.Sprintf(name, i))})
 		}
 		meta["afterExec"] = aeList
@@ -346,7 +396,9 @@ func exportSubtool(sub *Subtool, dir string) error {
 		for _, subsub := range sub.Subtools {
 			name := subsub.Name
 			subList = append(subList, map[string]interface{}{"path": name})
-			exportSubtool(&subsub, filepath.Join(dir, name))
+			if err := exportSubtool(&subsub, filepath.Join(dir, name)); err != nil {
+				return err
+			}
 		}
 		meta["tools"] = subList
 	}
