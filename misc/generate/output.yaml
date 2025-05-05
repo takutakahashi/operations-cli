@@ -1,0 +1,126 @@
+actions:
+    - danger_level: low
+      type: confirm
+      message: This is a low-risk operation. Proceed?
+      timeout: 0
+    - danger_level: medium
+      type: confirm
+      message: This is a medium-risk operation. Are you sure you want to proceed?
+      timeout: 0
+    - danger_level: high
+      type: confirm
+      message: This is a high-risk operation. Please confirm carefully before proceeding.
+      timeout: 0
+tools:
+    - name: bash
+      params: {}
+      subtools:
+        - name: loop
+          script: |-
+            #!/bin/bash
+            # Script with loop
+            ITERATIONS={{.iterations}}
+            echo "Starting loop for $ITERATIONS iterations"
+            for i in $(seq 1 $ITERATIONS); do
+              echo "Iteration $i of $ITERATIONS"
+            done
+            echo "Loop completed"
+          params:
+            iterations:
+                description: The number of iterations for the loop
+                type: string
+                required: true
+                validate: []
+          danger_level: ""
+          subtools: []
+        - name: variables
+          script: |-
+            #!/bin/bash
+            # Set and display variables
+            NAME="{{.name}}"
+            COUNT={{.count}}
+            echo "Hello, $NAME!"
+            echo "Count: $COUNT"
+            echo "Current date: $(date)"
+          params:
+            count:
+                description: The count value to use in the script
+                type: string
+                required: true
+                validate: []
+            name:
+                description: The name to use in the script
+                type: string
+                required: true
+                validate: []
+          danger_level: ""
+          subtools: []
+        - name: conditional
+          script: |-
+             #!/bin/bash
+             # Script with conditional logic
+             VALUE={{.value}}
+             if [ $VALUE -gt 10 ]; then
+               echo "Value $VALUE is greater than 10"
+             else
+               echo "Value $VALUE is less than or equal to 10"
+             fi
+          params:
+            value:
+                description: The value to check in the conditional
+                type: string
+                required: true
+                validate: []
+          danger_level: ""
+          subtools: []
+    - name: lifecycle
+      beforeExec:
+        - |-
+          #!/bin/bash
+          echo "Root before_exec"
+      afterExec:
+        - |
+          #!/bin/bash
+          echo "Root after_exec"
+      params: {}
+      subtools:
+        - name: test
+          script: |
+            #!/bin/bash
+            echo "Main script execution"
+          beforeExec:
+            - |
+              #!/bin/bash
+              echo "Subtool before_exec"
+          afterExec:
+            - |
+              #!/bin/bash
+              echo "Subtool after_exec"
+          params:
+            dummy:
+                description: Dummy parameter for testing
+                type: string
+                required: false
+                validate: []
+          danger_level: ""
+          subtools: []
+        - name: with-params
+          script: |
+            #!/bin/bash
+            echo "Main script with param: {{.param}}"
+          beforeExec:
+            - |-
+              #!/bin/bash
+              echo "Before exec with param: {{.param}}"
+          afterExec:
+            - |-
+              #!/bin/bash
+              echo "After exec with param: {{.param}}"
+          params:
+            param:
+                description: Test parameter
+                type: string
+                required: true
+                validate: []
+          danger_level: ""
+          subtools: []

@@ -1,0 +1,7 @@
+params:
+  iterations:
+    description: The number of iterations for the loop
+    type: string
+    required: true
+danger_level: high
+script: main.sh

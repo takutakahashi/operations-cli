@@ -1,0 +1,11 @@
+danger_level: low
+params:
+  name:
+    description: The name to use in the script
+    type: string
+    required: true
+  count:
+    description: The count value to use in the script
+    type: string
+    required: true
+script: main.sh

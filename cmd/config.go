@@ -10,8 +10,12 @@ import (
 )
 
 var (
-	configBuildInput  string
-	configBuildOutput string
+	configBuildInput      string
+	configBuildOutput     string
+	configCompileInput    string
+	configCompileOutput   string
+	configDecompileInput  string
+	configDecompileOutput string
 )
 
 var configCmd = &cobra.Command{
@@ -56,10 +60,64 @@ var configBuildCmd = &cobra.Command{
 	},
 }
 
+var configCompileCmd = &cobra.Command{
+	Use:   "compile",
+	Short: "ディレクトリ構造から設定ファイルを生成します",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if configCompileInput == "" {
+			return fmt.Errorf("-d/--dir で入力ディレクトリを指定してください")
+		}
+		builder := config.NewConfigBuilder(configCompileInput)
+		var out *os.File
+		if configCompileOutput != "" {
+			f, err := os.Create(configCompileOutput)
+			if err != nil {
+				return fmt.Errorf("出力ファイルの作成に失敗しました: %w", err)
+			}
+			defer f.Close()
+			out = f
+		} else {
+			out = os.Stdout
+		}
+		if err := builder.Build(out); err != nil {
+			return fmt.Errorf("Configのビルドに失敗しました: %w", err)
+		}
+		return nil
+	},
+}
+
+var configDecompileCmd = &cobra.Command{
+	Use:   "decompile",
+	Short: "設定ファイルからディレクトリ構成に展開します",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if configDecompileInput == "" {
+			return fmt.Errorf("-f/--file で入力ファイルを指定してください")
+		}
+		if configDecompileOutput == "" {
+			return fmt.Errorf("-d/--dir で出力ディレクトリを指定してください")
+		}
+		cfg, err := config.LoadConfig(configDecompileInput)
+		if err != nil {
+			return fmt.Errorf("設定ファイルの読み込みに失敗しました: %w", err)
+		}
+		builder := config.NewConfigBuilder("")
+		if err := builder.ExportToDir(cfg, configDecompileOutput); err != nil {
+			return fmt.Errorf("ディレクトリ展開に失敗しました: %w", err)
+		}
+		return nil
+	},
+}
+
 func init() {
 	configBuildCmd.Flags().StringVarP(&configBuildInput, "file", "f", "", "ベースとなる設定ファイルのパス")
 	configBuildCmd.Flags().StringVarP(&configBuildOutput, "output", "o", "", "出力先ファイルパス（省略時は標準出力）")
+	configCompileCmd.Flags().StringVarP(&configCompileInput, "dir", "d", "", "ベースとなるディレクトリのパス")
+	configCompileCmd.Flags().StringVarP(&configCompileOutput, "output", "o", "", "出力先ファイルパス（省略時は標準出力）")
+	configDecompileCmd.Flags().StringVarP(&configDecompileInput, "file", "f", "", "設定ファイルのパス")
+	configDecompileCmd.Flags().StringVarP(&configDecompileOutput, "dir", "d", "", "出力ディレクトリのパス")
 	configCmd.AddCommand(configBuildCmd)
+	configCmd.AddCommand(configCompileCmd)
+	configCmd.AddCommand(configDecompileCmd)
 }
 
 // 追加: rootCmdにconfigCmdを追加する関数

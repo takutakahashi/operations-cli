@@ -1,0 +1,10 @@
+params:
+  dummy:
+    description: Dummy parameter for testing
+    type: string
+    required: false
+script: main.sh
+beforeExec:
+- path: beforeExec/00-echo.sh
+afterExec:
+- path: afterExec/00-echo.sh
