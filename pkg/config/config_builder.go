@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -213,4 +214,134 @@ func buildSubtool(dir string) (*Subtool, error) {
 		}
 	}
 	return sub, nil
+}
+
+// ExportToDir はConfig構造体をディレクトリ構成に展開します。
+func (b *ConfigBuilder) ExportToDir(cfg *Config, outDir string) error {
+	// ルートmetadata.yaml作成
+	rootMeta := map[string]interface{}{}
+	if len(cfg.Actions) > 0 {
+		rootMeta["actions"] = cfg.Actions
+	}
+	if len(cfg.Tools) > 0 {
+		var toolsList []map[string]interface{}
+		for _, tool := range cfg.Tools {
+			toolsList = append(toolsList, map[string]interface{}{"path": "tools/" + tool.Name})
+		}
+		rootMeta["tools"] = toolsList
+	}
+	if err := writeMetadata(filepath.Join(outDir, "metadata.yaml"), rootMeta); err != nil {
+		return err
+	}
+	// tools ディレクトリ作成
+	toolsDir := filepath.Join(outDir, "tools")
+	os.MkdirAll(toolsDir, 0755)
+	for _, tool := range cfg.Tools {
+		if err := exportTool(&tool, filepath.Join(toolsDir, tool.Name)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeMetadata(path string, meta map[string]interface{}) error {
+	os.MkdirAll(filepath.Dir(path), 0755)
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := yaml.NewEncoder(f)
+	defer enc.Close()
+	return enc.Encode(meta)
+}
+
+func exportTool(tool *Tool, dir string) error {
+	os.MkdirAll(dir, 0755)
+	meta := map[string]interface{}{}
+	if len(tool.Params) > 0 {
+		meta["params"] = tool.Params
+	}
+	if tool.Script != "" {
+		meta["script"] = "main.sh"
+		os.WriteFile(filepath.Join(dir, "main.sh"), []byte(tool.Script), 0755)
+	}
+	if len(tool.BeforeExec) > 0 {
+		var beList []map[string]interface{}
+		for i, content := range tool.BeforeExec {
+			name := "beforeExec_%02d.sh"
+			fname := filepath.Join(dir, "beforeExec", fmt.Sprintf(name, i))
+			os.MkdirAll(filepath.Dir(fname), 0755)
+			os.WriteFile(fname, []byte(content), 0755)
+			beList = append(beList, map[string]interface{}{"path": filepath.Join("beforeExec", fmt.Sprintf(name, i))})
+		}
+		meta["beforeExec"] = beList
+	}
+	if len(tool.AfterExec) > 0 {
+		var aeList []map[string]interface{}
+		for i, content := range tool.AfterExec {
+			name := "afterExec_%02d.sh"
+			fname := filepath.Join(dir, "afterExec", fmt.Sprintf(name, i))
+			os.MkdirAll(filepath.Dir(fname), 0755)
+			os.WriteFile(fname, []byte(content), 0755)
+			aeList = append(aeList, map[string]interface{}{"path": filepath.Join("afterExec", fmt.Sprintf(name, i))})
+		}
+		meta["afterExec"] = aeList
+	}
+	// サブツール
+	if len(tool.Subtools) > 0 {
+		var subList []map[string]interface{}
+		for _, sub := range tool.Subtools {
+			name := sub.Name
+			subList = append(subList, map[string]interface{}{"path": name})
+			exportSubtool(&sub, filepath.Join(dir, name))
+		}
+		meta["tools"] = subList
+	}
+	return writeMetadata(filepath.Join(dir, "metadata.yaml"), meta)
+}
+
+func exportSubtool(sub *Subtool, dir string) error {
+	os.MkdirAll(dir, 0755)
+	meta := map[string]interface{}{}
+	if len(sub.Params) > 0 {
+		meta["params"] = sub.Params
+	}
+	if sub.Script != "" {
+		meta["script"] = "main.sh"
+		os.WriteFile(filepath.Join(dir, "main.sh"), []byte(sub.Script), 0755)
+	}
+	if len(sub.BeforeExec) > 0 {
+		var beList []map[string]interface{}
+		for i, content := range sub.BeforeExec {
+			name := "beforeExec_%02d.sh"
+			fname := filepath.Join(dir, "beforeExec", fmt.Sprintf(name, i))
+			os.MkdirAll(filepath.Dir(fname), 0755)
+			os.WriteFile(fname, []byte(content), 0755)
+			beList = append(beList, map[string]interface{}{"path": filepath.Join("beforeExec", fmt.Sprintf(name, i))})
+		}
+		meta["beforeExec"] = beList
+	}
+	if len(sub.AfterExec) > 0 {
+		var aeList []map[string]interface{}
+		for i, content := range sub.AfterExec {
+			name := "afterExec_%02d.sh"
+			fname := filepath.Join(dir, "afterExec", fmt.Sprintf(name, i))
+			os.MkdirAll(filepath.Dir(fname), 0755)
+			os.WriteFile(fname, []byte(content), 0755)
+			aeList = append(aeList, map[string]interface{}{"path": filepath.Join("afterExec", fmt.Sprintf(name, i))})
+		}
+		meta["afterExec"] = aeList
+	}
+	// ネストしたサブツール
+	if len(sub.Subtools) > 0 {
+		var subList []map[string]interface{}
+		for _, subsub := range sub.Subtools {
+			name := subsub.Name
+			subList = append(subList, map[string]interface{}{"path": name})
+			exportSubtool(&subsub, filepath.Join(dir, name))
+		}
+		meta["tools"] = subList
+	}
+	return writeMetadata(filepath.Join(dir, "metadata.yaml"), meta)
 }
