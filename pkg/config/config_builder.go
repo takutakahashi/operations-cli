@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"gopkg.in/yaml.v3"
 )
@@ -25,9 +26,15 @@ func (b *ConfigBuilder) Build(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	enc := yaml.NewEncoder(w)
-	defer enc.Close()
-	return enc.Encode(cfg)
+	out, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	// |4 などを |- に置換
+	re := regexp.MustCompile(`\|[0-9]+`)
+	fixed := re.ReplaceAll(out, []byte("|-"))
+	_, err = w.Write(fixed)
+	return err
 }
 
 // Compile はディレクトリ構造からConfigを構築します。
