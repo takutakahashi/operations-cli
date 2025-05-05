@@ -46,7 +46,10 @@ jobs:
       
       - name: Run local E2E tests
         run: bash ./misc/run_e2e_test.sh
-      
+
+      - name: Run compile/decompile E2E tests
+        run: bash ./misc/run_compile_decompile_e2e.sh
+
       - name: Run SSH E2E tests
         run: bash ./misc/run_ssh_e2e_test.sh
         
