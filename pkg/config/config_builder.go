@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -253,7 +254,7 @@ func (b *ConfigBuilder) ExportToDir(cfg *Config, outDir string) error {
 	if len(cfg.Tools) > 0 {
 		var toolsList []map[string]interface{}
 		for _, tool := range cfg.Tools {
-			toolsList = append(toolsList, map[string]interface{}{"path": "tools/" + tool.Name})
+			toolsList = append(toolsList, map[string]interface{}{"path": "tools/" + safeDirName(tool.Name)})
 		}
 		rootMeta["tools"] = toolsList
 	}
@@ -266,7 +267,7 @@ func (b *ConfigBuilder) ExportToDir(cfg *Config, outDir string) error {
 		return err
 	}
 	for _, tool := range cfg.Tools {
-		if err := exportTool(&tool, filepath.Join(toolsDir, tool.Name)); err != nil {
+		if err := exportTool(&tool, filepath.Join(toolsDir, safeDirName(tool.Name))); err != nil {
 			return err
 		}
 	}
@@ -335,7 +336,7 @@ func exportTool(tool *Tool, dir string) error {
 	if len(tool.Subtools) > 0 {
 		var subList []map[string]interface{}
 		for _, sub := range tool.Subtools {
-			name := sub.Name
+			name := safeDirName(sub.Name)
 			subList = append(subList, map[string]interface{}{"path": name})
 			if err := exportSubtool(&sub, filepath.Join(dir, name)); err != nil {
 				return err
@@ -394,7 +395,7 @@ func exportSubtool(sub *Subtool, dir string) error {
 	if len(sub.Subtools) > 0 {
 		var subList []map[string]interface{}
 		for _, subsub := range sub.Subtools {
-			name := subsub.Name
+			name := safeDirName(subsub.Name)
 			subList = append(subList, map[string]interface{}{"path": name})
 			if err := exportSubtool(&subsub, filepath.Join(dir, name)); err != nil {
 				return err
@@ -403,4 +404,9 @@ func exportSubtool(sub *Subtool, dir string) error {
 		meta["tools"] = subList
 	}
 	return writeMetadata(filepath.Join(dir, "metadata.yaml"), meta)
+}
+
+// スペースをアンダースコアに変換するユーティリティ関数
+func safeDirName(name string) string {
+	return strings.ReplaceAll(name, " ", "_")
 }
