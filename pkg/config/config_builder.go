@@ -224,6 +224,17 @@ func buildSubtool(dir string) (*Subtool, error) {
 			}
 		}
 	}
+	// param_refs
+	if paramRefs, ok := meta["param_refs"]; ok {
+		paramRefsYaml, _ := yaml.Marshal(paramRefs)
+		if err := yaml.Unmarshal(paramRefsYaml, &sub.ParamRefs); err != nil {
+			return nil, err
+		}
+	}
+	// danger_level
+	if dangerLevel, ok := meta["danger_level"].(string); ok {
+		sub.DangerLevel = dangerLevel
+	}
 	// ネストしたサブツール
 	if subs, ok := meta["tools"]; ok {
 		var subDefs []map[string]interface{}
