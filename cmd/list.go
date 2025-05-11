@@ -15,8 +15,8 @@ var listCmd = &cobra.Command{
 		fmt.Println("Available tools:")
 		if toolMgr != nil {
 			tools := toolMgr.GetCompiledTools()
-			for name := range tools {
-				fmt.Println(name)
+			for name, tool := range tools {
+				fmt.Printf("%s: %s\n", name, tool.Description)
 			}
 		}
 	},
