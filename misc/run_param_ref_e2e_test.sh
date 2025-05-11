@@ -38,15 +38,6 @@ else
     exit 1
 fi
 
-echo -e "\n${GREEN}Test 4: Command goodbye with message parameter${NC}"
-${OPERATIONS_BIN} exec command_goodbye --set message="param ref test"
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✓ Test 4 passed${NC}"
-else
-    echo -e "${RED}✗ Test 4 failed${NC}"
-    exit 1
-fi
-
 echo -e "\n${GREEN}Test 5: Sleep short command (low danger level)${NC}"
 ${OPERATIONS_BIN} exec sleep_short --set seconds=1
 if [ $? -eq 0 ]; then

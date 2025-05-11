@@ -11,6 +11,8 @@ actions:
 
 tools:
   - name: command
+    command:
+      - echo
     params:
       message:
         description: The message to echo
