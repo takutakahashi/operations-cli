@@ -47,7 +47,6 @@ type Subtool struct {
 	Params      Parameters `yaml:"params"`
 	DangerLevel string     `yaml:"danger_level"`
 	Subtools    []Subtool  `yaml:"subtools"`
-	ParamRefs   ParamRefs  `yaml:"param_refs,omitempty"`
 }
 
 // Parameter represents a parameter configuration
