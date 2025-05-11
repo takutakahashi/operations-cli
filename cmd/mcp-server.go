@@ -55,7 +55,7 @@ as MCP Tools for LLM applications. The server communicates over stdin/stdout by 
 			l.Printf("Registering tool: %s", toolPath)
 			toolInfo := tool.Info{
 				Name:        toolPath,
-				Description: "",
+				Description: compiledTool.Description,
 				Params:      compiledTool.Params,
 			}
 			registerTool(s, toolInfo, "", l)

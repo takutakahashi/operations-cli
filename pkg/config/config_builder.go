@@ -97,6 +97,10 @@ func buildTool(dir string) (*Tool, error) {
 	tool := &Tool{}
 	// name
 	tool.Name = filepath.Base(dir)
+	// description
+	if description, ok := meta["description"].(string); ok {
+		tool.Description = description
+	}
 	// params
 	if params, ok := meta["params"]; ok {
 		paramsYaml, _ := yaml.Marshal(params)
@@ -176,6 +180,9 @@ func buildSubtool(dir string) (*Subtool, error) {
 	}
 	sub := &Subtool{}
 	sub.Name = filepath.Base(dir)
+	if description, ok := meta["description"].(string); ok {
+		sub.Description = description
+	}
 	if params, ok := meta["params"]; ok {
 		paramsYaml, _ := yaml.Marshal(params)
 		if err := yaml.Unmarshal(paramsYaml, &sub.Params); err != nil {
