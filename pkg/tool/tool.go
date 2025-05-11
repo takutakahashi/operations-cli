@@ -34,6 +34,7 @@ type Manager struct {
 // CompiledTool represents a compiled tool
 type CompiledTool struct {
 	Name        string
+	Description string
 	Command     []string
 	Script      string
 	BeforeExec  []string
@@ -67,12 +68,13 @@ func NewManager(cfg *config.Config) *Manager {
 		toolName := strings.ReplaceAll(tool.Name, " ", "_")
 		// Compile root tool
 		root := &CompiledTool{
-			Name:       tool.Name,
-			Command:    tool.Command,
-			Script:     tool.Script,
-			BeforeExec: tool.BeforeExec,
-			AfterExec:  tool.AfterExec,
-			Params:     tool.Params,
+			Name:        tool.Name,
+			Description: tool.Description,
+			Command:     tool.Command,
+			Script:      tool.Script,
+			BeforeExec:  tool.BeforeExec,
+			AfterExec:   tool.AfterExec,
+			Params:      tool.Params,
 		}
 		mgr.compiledTools[toolName] = root
 
@@ -89,6 +91,7 @@ func (m *Manager) compileSubtools(parentPath string, parentCommand []string, par
 		// ツール名のスペースをアンダースコアに置換
 		subtoolName := strings.ReplaceAll(subtool.Name, " ", "_")
 		toolPath := parentPath + "_" + subtoolName
+		toolDescription := subtool.Description
 
 		// Create base command
 		var command []string
@@ -142,6 +145,7 @@ func (m *Manager) compileSubtools(parentPath string, parentCommand []string, par
 		// Create compiled tool
 		m.compiledTools[toolPath] = &CompiledTool{
 			Name:        subtool.Name,
+			Description: toolDescription,
 			Command:     command,
 			Script:      subtool.Script,
 			BeforeExec:  subtool.BeforeExec,
