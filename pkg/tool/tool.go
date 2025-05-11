@@ -121,12 +121,16 @@ func (m *Manager) compileSubtools(parentPath string, parentCommand []string, par
 		}
 
 		// Add explicitly referenced parent parameters
-		for name, paramRef := range subtool.ParamRefs {
-			if param, exists := parentParams[name]; exists {
+		//m.logger.Printf("subtool: %v", subtool)
+		//m.logger.Printf("subtool.name: %s, subtool.ParamRefs: %v", subtool.Name, subtool.ParamRefs)
+		for _, paramRef := range subtool.ParamRefs {
+			if param, exists := parentParams[paramRef.Name]; exists {
 				if paramRef.Required {
 					param.Required = true
 				}
-				params[name] = param
+				params[paramRef.Name] = param
+			} else {
+				m.logger.Printf("Warning: Referenced parameter not found in parent: %s", paramRef.Name)
 			}
 		}
 

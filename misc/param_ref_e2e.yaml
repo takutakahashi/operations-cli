@@ -11,8 +11,6 @@ actions:
 
 tools:
   - name: command
-    command:
-      - echo
     params:
       message:
         description: The message to echo
@@ -31,7 +29,8 @@ tools:
           prefix:
             required: false
       - name: goodbye
-        args: ["{{.prefix}}Goodbye, {{.message}}!"]
+        script: |
+          echo {{.prefix}}{{.message}}
         param_refs:
           message:
             required: true

@@ -1,0 +1,71 @@
+actions:
+  - danger_level: low
+    type: confirm
+    message: "This is a low-risk operation. Proceed?"
+  - danger_level: medium
+    type: confirm
+    message: "This is a medium-risk operation. Are you sure you want to proceed?"
+  - danger_level: high
+    type: confirm
+    message: "This is a high-risk operation. Please confirm carefully before proceeding."
+tools:
+    - name: automf
+      params:
+        amount:
+            description: 収支に関わる金額
+            type: string
+            required: true
+        comment:
+            description: 収支の内容を表すコメント
+            type: string
+            required: true
+        item:
+            description: 収支の種類がある。支出は 食費/外食、食費/食費、日用品/日用品、光熱費/光熱費、その他/生活費 が選択肢にあり、収入では 収入/その他入金 のみがある。
+            type: string
+            required: true
+        member:
+            description: 対象となる人。「たくや」と「あき」の2人がいる。
+            type: string
+            required: true
+      subtools:
+        - name: grab_assets
+          description: |
+            資産データを取得します。
+          script: |
+            #!/bin/bash
+
+            curl "http://container-api-gateway.default.svc.cluster.local/balancegroup?group=資産"
+        - name: tatekae-seisan
+          param_refs:
+            amount:
+              required: true
+            comment:
+              required: true
+            item:
+              required: true
+            member:
+              required: true
+          description: |
+            個人のお金を利用して家計の支出を払ったなど、建て替えを行ったときに使用します。
+          script: |-
+            #!/bin/bash
+
+            curl -X POST http://container-api-gateway.default.svc.cluster.local/add \
+              -H "Content-Type: application/x-www-form-urlencoded" \
+              -d "member={{ .member }}&amount={{ .amount }}&comment={{ .comment }}&item={{ .item }}&group=家計"
+        - name: syakkin-hensai
+          param_refs:
+            amount:
+              required: true
+            comment:
+              required: true
+            member:
+              required: true
+          description: |
+            家計のお金を借りて個人の支出を払った場合、家計にお金を返す必要があります。借金を返済するときに使用します。
+          script: |-
+            #!/bin/bash
+
+            curl -X POST http://container-api-gateway.default.svc.cluster.local/return \
+              -H "Content-Type: application/x-www-form-urlencoded" \
+              -d "member={{ .member }}&amount={{ .amount }}&comment={{ .comment }}&group=家計"

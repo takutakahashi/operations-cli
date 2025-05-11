@@ -46,9 +46,9 @@ func createSubtoolCommand(parentName string, subtool config.Subtool) *cobra.Comm
 			// Execute the subtool
 			paramValues := getParamValues(cmd, subtool.Params)
 			if len(subtool.ParamRefs) > 0 {
-				for name := range subtool.ParamRefs {
-					if flag := cmd.Flag(name); flag != nil && flag.Value.String() != "" {
-						paramValues[name] = flag.Value.String()
+				for _, paramRef := range subtool.ParamRefs {
+					if flag := cmd.Flag(paramRef.Name); flag != nil && flag.Value.String() != "" {
+						paramValues[paramRef.Name] = flag.Value.String()
 					}
 				}
 			}
@@ -74,7 +74,7 @@ func createSubtoolCommand(parentName string, subtool config.Subtool) *cobra.Comm
 }
 
 // addParamFlags adds flags for parameters to a command
-func addParamFlags(cmd *cobra.Command, params config.Parameters, paramRefs ...config.ParamRefs) {
+func addParamFlags(cmd *cobra.Command, params config.Parameters, paramRefs []config.ParamRef) {
 	// Add flags for direct parameters
 	for name, param := range params {
 		// Create flag description
@@ -97,34 +97,32 @@ func addParamFlags(cmd *cobra.Command, params config.Parameters, paramRefs ...co
 	}
 
 	// Add flags for referenced parameters
-	for _, refs := range paramRefs {
-		for name, paramRef := range refs {
-			if cmd.Flag(name) != nil {
-				continue
-			}
+	for _, paramRef := range paramRefs {
+		if cmd.Flag(paramRef.Name) != nil {
+			continue
+		}
 
-			param, _ := getParamFromToolManager(name)
-			if param == nil {
-				continue
-			}
+		param, _ := getParamFromToolManager(paramRef.Name)
+		if param == nil {
+			continue
+		}
 
-			// Create flag description
-			desc := param.Description
-			if paramRef.Required {
-				desc += " (required)"
-			}
+		// Create flag description
+		desc := param.Description
+		if paramRef.Required {
+			desc += " (required)"
+		}
 
-			// Add flag based on parameter type
-			switch param.Type {
-			case "string":
-				cmd.Flags().String(name, "", desc)
-			case "int":
-				cmd.Flags().Int(name, 0, desc)
-			case "bool":
-				cmd.Flags().Bool(name, false, desc)
-			default:
-				cmd.Flags().String(name, "", desc)
-			}
+		// Add flag based on parameter type
+		switch param.Type {
+		case "string":
+			cmd.Flags().String(paramRef.Name, "", desc)
+		case "int":
+			cmd.Flags().Int(paramRef.Name, 0, desc)
+		case "bool":
+			cmd.Flags().Bool(paramRef.Name, false, desc)
+		default:
+			cmd.Flags().String(paramRef.Name, "", desc)
 		}
 	}
 }
