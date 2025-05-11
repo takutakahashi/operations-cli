@@ -463,7 +463,15 @@ func (m *Manager) GetConfig() *config.Config {
 
 // GetCompiledTools returns the compiled tools map
 func (m *Manager) GetCompiledTools() map[string]*CompiledTool {
-	return m.compiledTools
+	filteredTools := make(map[string]*CompiledTool)
+	for name, tool := range m.compiledTools {
+		// command、arg、scriptのいずれも持たないツールは除外
+		if len(tool.Command) == 0 && tool.Script == "" {
+			continue
+		}
+		filteredTools[name] = tool
+	}
+	return filteredTools
 }
 
 func (m *Manager) GetToolInfo(toolPath string) (*ToolInfo, error) {
