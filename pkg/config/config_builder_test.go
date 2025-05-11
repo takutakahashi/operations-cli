@@ -122,8 +122,8 @@ script: main.sh`
 	}
 
 	// サブツールのパラメータの検証
-	if len(subtool.Params) != 1 {
-		t.Fatalf("Expected 1 parameter in subtool, got %d", len(subtool.Params))
+	if len(subtool.Params) != 3 {
+		t.Fatalf("Expected 3 parameters in subtool, got %d", len(subtool.Params))
 	}
 
 	param3, ok := subtool.Params["param3"]
@@ -134,25 +134,21 @@ script: main.sh`
 		t.Errorf("Expected param3 description 'Test parameter 3', got '%s'", param3.Description)
 	}
 
-	// サブツールのparam_refsの検証
-	if len(subtool.ParamRefs) != 2 {
-		t.Fatalf("Expected 2 param_refs in subtool, got %d", len(subtool.ParamRefs))
+	// param_refsから変換されたParamsの検証
+	param1, ok = subtool.Params["param1"]
+	if !ok {
+		t.Fatal("Expected param1 to exist in subtool params from param_refs")
+	}
+	if !param1.Required {
+		t.Error("Expected param1 to be required in params")
 	}
 
-	param1Ref, ok := subtool.ParamRefs["param1"]
+	param2, ok := subtool.Params["param2"]
 	if !ok {
-		t.Fatal("Expected param1 to exist in subtool param_refs")
+		t.Fatal("Expected param2 to exist in subtool params from param_refs")
 	}
-	if !param1Ref.Required {
-		t.Error("Expected param1 to be required in param_refs")
-	}
-
-	param2Ref, ok := subtool.ParamRefs["param2"]
-	if !ok {
-		t.Fatal("Expected param2 to exist in subtool param_refs")
-	}
-	if param2Ref.Required {
-		t.Error("Expected param2 to be not required in param_refs")
+	if param2.Required {
+		t.Error("Expected param2 to be not required in params")
 	}
 
 	// サブツールのdanger_levelの検証
