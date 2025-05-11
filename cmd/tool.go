@@ -118,16 +118,6 @@ func getParamValues(cmd *cobra.Command, params config.Parameters) map[string]str
 	return values
 }
 
-// getParamFromToolManager retrieves a parameter from the tool manager
-func getParamFromToolManager(name string) (*config.Parameter, error) {
-	for _, tool := range toolMgr.GetConfig().Tools {
-		if param, exists := tool.Params[name]; exists {
-			return &param, nil
-		}
-	}
-	return nil, fmt.Errorf("parameter not found: %s", name)
-}
-
 // createDescribeCommand creates a command to describe a tool
 func createDescribeCommand() *cobra.Command {
 	cmd := &cobra.Command{
