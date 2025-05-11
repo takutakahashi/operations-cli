@@ -549,3 +549,22 @@ func (m *Manager) executeCommand(command []string, script string, paramValues ma
 	}
 	return result, nil
 }
+
+// DescribeTool returns detailed information about a tool
+func (m *Manager) DescribeTool(toolPath string) (*Info, error) {
+	tool, exists := m.compiledTools[toolPath]
+	if !exists {
+		return nil, fmt.Errorf("tool not found: %s", toolPath)
+	}
+
+	// 実行可能なツールかどうかをチェック
+	if len(tool.Command) == 0 && tool.Script == "" {
+		return nil, fmt.Errorf("tool is not executable: %s", toolPath)
+	}
+
+	return &Info{
+		Name:        tool.Name,
+		Description: tool.Description,
+		Params:      tool.Params,
+	}, nil
+}

@@ -165,3 +165,38 @@ func getParamFromToolManager(name string) (*config.Parameter, error) {
 	}
 	return nil, fmt.Errorf("parameter not found: %s", name)
 }
+
+// createDescribeCommand creates a command to describe a tool
+func createDescribeCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "describe [tool-path]",
+		Short: "Show detailed information about a tool",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			toolPath := args[0]
+			info, err := toolMgr.DescribeTool(toolPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+
+			// ツールの基本情報を表示
+			fmt.Printf("Name: %s\n", info.Name)
+			fmt.Printf("Description: %s\n", info.Description)
+
+			// パラメータの一覧を表示
+			if len(info.Params) > 0 {
+				fmt.Println("\nParameters:")
+				for name, param := range info.Params {
+					required := ""
+					if param.Required {
+						required = " (required)"
+					}
+					fmt.Printf("  - %s%s: %s\n", name, required, param.Description)
+				}
+			}
+		},
+	}
+
+	return cmd
+}
