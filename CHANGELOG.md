@@ -1,5 +1,7 @@
 # Changelog
 
+## [v0.6.21](https://github.com/takutakahashi/operation-mcp/compare/v0.6.20...v0.6.21) - 2025-05-11
+
 ## [v0.6.20](https://github.com/takutakahashi/operation-mcp/compare/v0.6.19...v0.6.20) - 2025-05-05
 - replace to safe name by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/104
 
