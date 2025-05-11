@@ -26,8 +26,9 @@ func TestFindTool(t *testing.T) {
 					{
 						Name: "get",
 						Args: []string{"get", "pod", "-o", "json", "-n", "{{.namespace}}"},
-						ParamRefs: map[string]config.ParamRef{
-							"namespace": {
+						ParamRefs: []config.ParamRef{
+							{
+								Name:     "namespace",
 								Required: true,
 							},
 						},
@@ -324,8 +325,9 @@ func TestFindToolWithParamRefs(t *testing.T) {
 					{
 						Name: "subcmd",
 						Args: []string{"subcmd", "{{.global-param}}"},
-						ParamRefs: map[string]config.ParamRef{
-							"global-param": {
+						ParamRefs: []config.ParamRef{
+							{
+								Name:     "global-param",
 								Required: true, // Override to make it required for this subtool
 							},
 						},
@@ -333,11 +335,13 @@ func TestFindToolWithParamRefs(t *testing.T) {
 					{
 						Name: "anothercmd",
 						Args: []string{"anothercmd", "{{.global-param}}", "{{.optional-param}}"},
-						ParamRefs: map[string]config.ParamRef{
-							"global-param": {
+						ParamRefs: []config.ParamRef{
+							{
+								Name:     "global-param",
 								Required: true,
 							},
-							"optional-param": {
+							{
+								Name:     "optional-param",
 								Required: false, // Keep it optional
 							},
 						},

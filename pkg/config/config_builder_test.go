@@ -139,20 +139,34 @@ script: main.sh`
 		t.Fatalf("Expected 2 param_refs in subtool, got %d", len(subtool.ParamRefs))
 	}
 
-	param1Ref, ok := subtool.ParamRefs["param1"]
-	if !ok {
+	// param1の検証
+	foundParam1 := false
+	for _, ref := range subtool.ParamRefs {
+		if ref.Name == "param1" {
+			foundParam1 = true
+			if !ref.Required {
+				t.Error("Expected param1 to be required in param_refs")
+			}
+			break
+		}
+	}
+	if !foundParam1 {
 		t.Fatal("Expected param1 to exist in subtool param_refs")
 	}
-	if !param1Ref.Required {
-		t.Error("Expected param1 to be required in param_refs")
-	}
 
-	param2Ref, ok := subtool.ParamRefs["param2"]
-	if !ok {
-		t.Fatal("Expected param2 to exist in subtool param_refs")
+	// param2の検証
+	foundParam2 := false
+	for _, ref := range subtool.ParamRefs {
+		if ref.Name == "param2" {
+			foundParam2 = true
+			if ref.Required {
+				t.Error("Expected param2 to be not required in param_refs")
+			}
+			break
+		}
 	}
-	if param2Ref.Required {
-		t.Error("Expected param2 to be not required in param_refs")
+	if !foundParam2 {
+		t.Fatal("Expected param2 to exist in subtool param_refs")
 	}
 
 	// サブツールのdanger_levelの検証
