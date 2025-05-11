@@ -46,9 +46,9 @@ tools:
     type: string
     required: true
 param_refs:
-  param1:
+  - name: param1
     required: true
-  param2:
+  - name: param2
     required: false
 danger_level: high
 script: main.sh`
