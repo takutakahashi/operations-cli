@@ -235,38 +235,8 @@ func buildSubtool(dir string) (*Subtool, error) {
 			}
 		}
 	}
-	// param_refs
-	if paramRefs, ok := meta["param_refs"]; ok {
-		paramRefsMap := make(map[string]Parameter)
-		paramRefsYaml, _ := yaml.Marshal(paramRefs)
-		var tempMap map[string]map[string]interface{}
-		if err := yaml.Unmarshal(paramRefsYaml, &tempMap); err != nil {
-			return nil, err
-		}
-		for name, paramRef := range tempMap {
-			param := Parameter{}
-			if required, ok := paramRef["required"].(bool); ok {
-				param.Required = required
-			}
-			// 親ツールのパラメータ情報を取得
-			if parentParams, ok := meta["parent_params"].(map[string]interface{}); ok {
-				if parentParam, ok := parentParams[name].(map[string]interface{}); ok {
-					if desc, ok := parentParam["description"].(string); ok {
-						param.Description = desc
-					}
-					if typ, ok := parentParam["type"].(string); ok {
-						param.Type = typ
-					}
-				}
-			}
-			paramRefsMap[name] = param
-		}
-		if sub.Params == nil {
-			sub.Params = make(map[string]Parameter)
-		}
-		for name, param := range paramRefsMap {
-			sub.Params[name] = param
-		}
+	if sub.Params == nil {
+		sub.Params = make(map[string]Parameter)
 	}
 	// danger_level
 	if dangerLevel, ok := meta["danger_level"].(string); ok {
