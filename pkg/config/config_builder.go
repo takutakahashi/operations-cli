@@ -95,29 +95,24 @@ func buildTool(dir string) (*Tool, error) {
 		return nil, err
 	}
 	tool := &Tool{}
-	// name
 	tool.Name = filepath.Base(dir)
-	// description
 	if description, ok := meta["description"].(string); ok {
 		tool.Description = description
 	}
-	// params
 	if params, ok := meta["params"]; ok {
 		paramsYaml, _ := yaml.Marshal(params)
 		if err := yaml.Unmarshal(paramsYaml, &tool.Params); err != nil {
 			return nil, err
 		}
 	}
-	// script
 	if script, ok := meta["script"].(string); ok {
 		scriptPath := filepath.Join(dir, script)
 		if content, err := os.ReadFile(scriptPath); err == nil {
 			tool.Script = string(content)
 		} else {
-			tool.Script = script // ファイルがなければそのまま
+			tool.Script = script
 		}
 	}
-	// beforeExec/afterExec
 	if be, ok := meta["beforeExec"]; ok {
 		var beList []map[string]interface{}
 		beYaml, _ := yaml.Marshal(be)
@@ -152,7 +147,7 @@ func buildTool(dir string) (*Tool, error) {
 			}
 		}
 	}
-	// subtools
+	// サブツール
 	if subs, ok := meta["tools"]; ok {
 		var subDefs []map[string]interface{}
 		subsYaml, _ := yaml.Marshal(subs)
@@ -161,7 +156,16 @@ func buildTool(dir string) (*Tool, error) {
 		}
 		for _, s := range subDefs {
 			if path, ok := s["path"].(string); ok {
-				sub, err := buildSubtool(filepath.Join(dir, path))
+				subDir := filepath.Join(dir, path)
+				// サブツールのmetadata.yamlを読み込む
+				subMeta, err := readMetadata(filepath.Join(subDir, "metadata.yaml"))
+				if err != nil {
+					return nil, err
+				}
+				// 親ツールのパラメータ情報を追加
+				subMeta["parent_params"] = tool.Params
+				// サブツールをビルド
+				sub, err := buildSubtool(subDir)
 				if err != nil {
 					return nil, err
 				}
@@ -233,9 +237,35 @@ func buildSubtool(dir string) (*Subtool, error) {
 	}
 	// param_refs
 	if paramRefs, ok := meta["param_refs"]; ok {
+		paramRefsMap := make(map[string]Parameter)
 		paramRefsYaml, _ := yaml.Marshal(paramRefs)
-		if err := yaml.Unmarshal(paramRefsYaml, &sub.ParamRefs); err != nil {
+		var tempMap map[string]map[string]interface{}
+		if err := yaml.Unmarshal(paramRefsYaml, &tempMap); err != nil {
 			return nil, err
+		}
+		for name, paramRef := range tempMap {
+			param := Parameter{}
+			if required, ok := paramRef["required"].(bool); ok {
+				param.Required = required
+			}
+			// 親ツールのパラメータ情報を取得
+			if parentParams, ok := meta["parent_params"].(map[string]interface{}); ok {
+				if parentParam, ok := parentParams[name].(map[string]interface{}); ok {
+					if desc, ok := parentParam["description"].(string); ok {
+						param.Description = desc
+					}
+					if typ, ok := parentParam["type"].(string); ok {
+						param.Type = typ
+					}
+				}
+			}
+			paramRefsMap[name] = param
+		}
+		if sub.Params == nil {
+			sub.Params = make(map[string]Parameter)
+		}
+		for name, param := range paramRefsMap {
+			sub.Params[name] = param
 		}
 	}
 	// danger_level

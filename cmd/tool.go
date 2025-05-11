@@ -26,7 +26,7 @@ func createToolCommand(tool config.Tool) *cobra.Command {
 	}
 
 	// Add parameter flags
-	addParamFlags(cmd, tool.Params, nil)
+	addParamFlags(cmd, tool.Params)
 
 	// Add subtool commands
 	for _, subtool := range tool.Subtools {
@@ -45,13 +45,6 @@ func createSubtoolCommand(parentName string, subtool config.Subtool) *cobra.Comm
 		Run: func(cmd *cobra.Command, args []string) {
 			// Execute the subtool
 			paramValues := getParamValues(cmd, subtool.Params)
-			if len(subtool.ParamRefs) > 0 {
-				for name := range subtool.ParamRefs {
-					if flag := cmd.Flag(name); flag != nil && flag.Value.String() != "" {
-						paramValues[name] = flag.Value.String()
-					}
-				}
-			}
 			output, err := toolMgr.ExecuteTool(parentName+"_"+subtool.Name, paramValues)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -62,7 +55,7 @@ func createSubtoolCommand(parentName string, subtool config.Subtool) *cobra.Comm
 	}
 
 	// Add parameter flags
-	addParamFlags(cmd, subtool.Params, subtool.ParamRefs)
+	addParamFlags(cmd, subtool.Params)
 
 	// Add nested subtool commands
 	for _, nestedSubtool := range subtool.Subtools {
@@ -74,7 +67,7 @@ func createSubtoolCommand(parentName string, subtool config.Subtool) *cobra.Comm
 }
 
 // addParamFlags adds flags for parameters to a command
-func addParamFlags(cmd *cobra.Command, params config.Parameters, paramRefs ...config.ParamRefs) {
+func addParamFlags(cmd *cobra.Command, params config.Parameters) {
 	// Add flags for direct parameters
 	for name, param := range params {
 		// Create flag description
@@ -96,37 +89,6 @@ func addParamFlags(cmd *cobra.Command, params config.Parameters, paramRefs ...co
 		}
 	}
 
-	// Add flags for referenced parameters
-	for _, refs := range paramRefs {
-		for name, paramRef := range refs {
-			if cmd.Flag(name) != nil {
-				continue
-			}
-
-			param, _ := getParamFromToolManager(name)
-			if param == nil {
-				continue
-			}
-
-			// Create flag description
-			desc := param.Description
-			if paramRef.Required {
-				desc += " (required)"
-			}
-
-			// Add flag based on parameter type
-			switch param.Type {
-			case "string":
-				cmd.Flags().String(name, "", desc)
-			case "int":
-				cmd.Flags().Int(name, 0, desc)
-			case "bool":
-				cmd.Flags().Bool(name, false, desc)
-			default:
-				cmd.Flags().String(name, "", desc)
-			}
-		}
-	}
 }
 
 // getParamValues gets parameter values from flags
@@ -154,16 +116,6 @@ func getParamValues(cmd *cobra.Command, params config.Parameters) map[string]str
 	}
 
 	return values
-}
-
-// getParamFromToolManager retrieves a parameter from the tool manager
-func getParamFromToolManager(name string) (*config.Parameter, error) {
-	for _, tool := range toolMgr.GetConfig().Tools {
-		if param, exists := tool.Params[name]; exists {
-			return &param, nil
-		}
-	}
-	return nil, fmt.Errorf("parameter not found: %s", name)
 }
 
 // createDescribeCommand creates a command to describe a tool

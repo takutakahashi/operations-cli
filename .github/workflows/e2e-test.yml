@@ -63,9 +63,6 @@ jobs:
           fi
           bash ./misc/run_remote_config_e2e_test.sh
           
-      - name: Run Param Ref E2E tests
-        run: bash ./misc/run_param_ref_e2e_test.sh
-        
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:

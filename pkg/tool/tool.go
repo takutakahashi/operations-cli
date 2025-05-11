@@ -120,16 +120,6 @@ func (m *Manager) compileSubtools(parentPath string, parentCommand []string, par
 			params[name] = param
 		}
 
-		// Add explicitly referenced parent parameters
-		for name, paramRef := range subtool.ParamRefs {
-			if param, exists := parentParams[name]; exists {
-				if paramRef.Required {
-					param.Required = true
-				}
-				params[name] = param
-			}
-		}
-
 		// Add implicitly referenced parent parameters (used in Args or Script)
 		if len(subtool.Args) > 0 || subtool.Script != "" {
 			content := strings.Join(subtool.Args, " ") + subtool.Script
