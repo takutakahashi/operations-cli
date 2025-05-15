@@ -16,10 +16,6 @@ WORKDIR /app
 
 # ビルドステージからバイナリをコピー
 COPY --from=builder /app/operations /app/operations
-
-# 実行権限の確保
-USER root
-RUN chmod +x /app/operations
 USER nonroot
 
 ENTRYPOINT ["/app/operations"]
