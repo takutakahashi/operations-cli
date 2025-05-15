@@ -1,5 +1,7 @@
 # Changelog
 
+## [v0.6.26](https://github.com/takutakahashi/operation-mcp/compare/v0.6.25...v0.6.26) - 2025-05-15
+
 ## [v0.6.25](https://github.com/takutakahashi/operation-mcp/compare/v0.6.24...v0.6.25) - 2025-05-15
 - release via container by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/115
 
