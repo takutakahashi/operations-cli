@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # バイナリのビルド
-RUN CGO_ENABLED=0 GOOS=linux go build -o operations ./cmd/operations
+RUN go build -o operations .
 
 # 実行ステージ
 FROM gcr.io/distroless/base-debian12:nonroot
