@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.6.27](https://github.com/takutakahashi/operation-mcp/compare/v0.6.26...v0.6.27) - 2025-05-23
+- ツールに enabled フラグを実装 by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/118
+- Fix: Update danger_level values in e2e test expected output by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/120
+- Add config init commands by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/121
+
 ## [v0.6.26](https://github.com/takutakahashi/operation-mcp/compare/v0.6.25...v0.6.26) - 2025-05-15
 
 ## [v0.6.25](https://github.com/takutakahashi/operation-mcp/compare/v0.6.24...v0.6.25) - 2025-05-15
