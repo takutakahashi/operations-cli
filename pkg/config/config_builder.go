@@ -60,9 +60,61 @@ func (b *ConfigBuilder) Compile() (*Config, error) {
 		if err := yaml.Unmarshal(toolsYaml, &toolDefs); err != nil {
 			return nil, err
 		}
+		
+		processedDirs := make(map[string]bool)
+		
+		rootDirAbs, err := filepath.Abs(b.RootDir)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get absolute path of root directory %s: %w", b.RootDir, err)
+		}
+		processedDirs[rootDirAbs] = true
+		
 		for _, t := range toolDefs {
 			if path, ok := t["path"].(string); ok {
+				if path == "." {
+					entries, err := os.ReadDir(b.RootDir)
+					if err != nil {
+						return nil, fmt.Errorf("failed to read directory %s: %w", b.RootDir, err)
+					}
+					
+					for _, entry := range entries {
+						if !entry.IsDir() {
+							continue
+						}
+						
+						subDir := filepath.Join(b.RootDir, entry.Name())
+						subDirAbs, err := filepath.Abs(subDir)
+						if err != nil {
+							return nil, fmt.Errorf("failed to get absolute path of directory %s: %w", subDir, err)
+						}
+						
+						if processedDirs[subDirAbs] {
+							continue
+						}
+						
+						metadataPath := filepath.Join(subDir, "metadata.yaml")
+						if _, err := os.Stat(metadataPath); err == nil {
+							tool, err := buildTool(subDir)
+							if err != nil {
+								return nil, err
+							}
+							cfg.Tools = append(cfg.Tools, *tool)
+							processedDirs[subDirAbs] = true
+						}
+					}
+					continue
+				}
+				
 				fullPath := filepath.Join(b.RootDir, path)
+				fullPathAbs, err := filepath.Abs(fullPath)
+				if err != nil {
+					return nil, fmt.Errorf("failed to get absolute path of directory %s: %w", fullPath, err)
+				}
+				
+				if processedDirs[fullPathAbs] {
+					continue
+				}
+				
 				fileInfo, err := os.Stat(fullPath)
 				if err != nil {
 					return nil, fmt.Errorf("failed to stat path %s: %w", fullPath, err)
@@ -77,8 +129,9 @@ func (b *ConfigBuilder) Compile() (*Config, error) {
 						return nil, err
 					}
 					cfg.Tools = append(cfg.Tools, *tool)
+					processedDirs[fullPathAbs] = true
 				} else if fileInfo.IsDir() {
-					subDirs, err := findToolDirectories(fullPath)
+					subDirs, err := findToolDirectories(fullPath, processedDirs)
 					if err != nil {
 						return nil, err
 					}
@@ -118,7 +171,18 @@ func readMetadata(path string) (map[string]interface{}, error) {
 	return m, nil
 }
 
-func findToolDirectories(dir string) ([]string, error) {
+func findToolDirectories(dir string, processedDirs map[string]bool) ([]string, error) {
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute path of directory %s: %w", dir, err)
+	}
+	
+	if processedDirs[absDir] {
+		return []string{}, nil
+	}
+	
+	processedDirs[absDir] = true
+	
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory %s: %w", dir, err)
@@ -132,6 +196,15 @@ func findToolDirectories(dir string) ([]string, error) {
 		}
 		
 		subDir := filepath.Join(dir, entry.Name())
+		subDirAbs, err := filepath.Abs(subDir)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get absolute path of directory %s: %w", subDir, err)
+		}
+		
+		if processedDirs[subDirAbs] {
+			continue
+		}
+		
 		metadataPath := filepath.Join(subDir, "metadata.yaml")
 		
 		if _, err := os.Stat(metadataPath); err == nil {
