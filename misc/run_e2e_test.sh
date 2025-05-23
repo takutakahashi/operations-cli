@@ -176,4 +176,30 @@ else
     exit 1
 fi
 
+echo -e "\n${GREEN}Test 12: Verify disabled tools are not loaded${NC}"
+list_output=$(${OPERATIONS_BIN} list)
+
+if echo "$list_output" | grep -q "disabled-tool"; then
+    echo -e "${RED}✗ Test 12 failed - disabled-tool was found in the list${NC}"
+    exit 1
+fi
+
+if echo "$list_output" | grep -q "partially-disabled_disabled-subtool"; then
+    echo -e "${RED}✗ Test 12 failed - disabled subtool was found in the list${NC}"
+    exit 1
+fi
+
+if ! echo "$list_output" | grep -q "partially-disabled_enabled-subtool"; then
+    echo -e "${RED}✗ Test 12 failed - enabled subtool was not found in the list${NC}"
+    exit 1
+fi
+
+disabled_output=$(${OPERATIONS_BIN} exec disabled-tool --set message="test" 2>&1 || true)
+if ! echo "$disabled_output" | grep -q "tool not found"; then
+    echo -e "${RED}✗ Test 12 failed - executing disabled tool did not fail properly${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ Test 12 passed${NC}"
+
 echo -e "\n${GREEN}All e2e tests passed successfully!${NC}"

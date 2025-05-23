@@ -64,6 +64,10 @@ func NewManager(cfg *config.Config) *Manager {
 
 	// Compile all tools and subtools into flat structure
 	for _, tool := range cfg.Tools {
+		if tool.Enabled != nil && !*tool.Enabled {
+			continue
+		}
+		
 		// ルートツール名のスペースをアンダースコアに置換
 		toolName := strings.ReplaceAll(tool.Name, " ", "_")
 		// Compile root tool
@@ -88,6 +92,10 @@ func NewManager(cfg *config.Config) *Manager {
 // compileSubtools recursively compiles subtools into flat structure
 func (m *Manager) compileSubtools(parentPath string, parentCommand []string, parentParams map[string]config.Parameter, subtools []config.Subtool) {
 	for _, subtool := range subtools {
+		if subtool.Enabled != nil && !*subtool.Enabled {
+			continue
+		}
+		
 		// ツール名のスペースをアンダースコアに置換
 		subtoolName := strings.ReplaceAll(subtool.Name, " ", "_")
 		toolPath := parentPath + "_" + subtoolName
