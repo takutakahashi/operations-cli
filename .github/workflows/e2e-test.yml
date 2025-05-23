@@ -49,6 +49,9 @@ jobs:
 
       - name: Run compile/decompile E2E tests
         run: bash ./misc/run_compile_decompile_e2e.sh
+        
+      - name: Run directory tools E2E tests
+        run: bash ./misc/run_dir_tools_e2e_test.sh
 
       - name: Run SSH E2E tests
         run: bash ./misc/run_ssh_e2e_test.sh
