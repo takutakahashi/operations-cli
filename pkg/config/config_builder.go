@@ -40,6 +40,7 @@ func (b *ConfigBuilder) Build(w io.Writer) error {
 
 // Compile はディレクトリ構造からConfigを構築します。
 func (b *ConfigBuilder) Compile() (*Config, error) {
+	fmt.Printf("\n[DEBUG] Starting Compile method for root dir: %s\n", b.RootDir)
 	// ルートのmetadata.yamlを読む
 	rootMeta, err := readMetadata(filepath.Join(b.RootDir, "metadata.yaml"))
 	if err != nil {
@@ -72,6 +73,8 @@ func (b *ConfigBuilder) Compile() (*Config, error) {
 		for _, t := range toolDefs {
 			if path, ok := t["path"].(string); ok {
 				if path == "." {
+					
+					fmt.Printf("\n[DEBUG] Found path: . in directory: %s\n", b.RootDir)
 					entries, err := os.ReadDir(b.RootDir)
 					if err != nil {
 						return nil, fmt.Errorf("failed to read directory %s: %w", b.RootDir, err)
@@ -89,6 +92,7 @@ func (b *ConfigBuilder) Compile() (*Config, error) {
 						}
 						
 						if processedDirs[subDirAbs] {
+							fmt.Printf("\n[DEBUG] Directory already processed, skipping: %s\n", subDirAbs)
 							continue
 						}
 						
@@ -112,6 +116,7 @@ func (b *ConfigBuilder) Compile() (*Config, error) {
 				}
 				
 				if processedDirs[fullPathAbs] {
+					fmt.Printf("\n[DEBUG] Directory already processed, skipping: %s\n", fullPathAbs)
 					continue
 				}
 				
@@ -172,16 +177,20 @@ func readMetadata(path string) (map[string]interface{}, error) {
 }
 
 func findToolDirectories(dir string, processedDirs map[string]bool) ([]string, error) {
+	fmt.Printf("\n[DEBUG] findToolDirectories: %s\n", dir)
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get absolute path of directory %s: %w", dir, err)
 	}
 	
 	if processedDirs[absDir] {
+		fmt.Printf("\n[DEBUG] Directory already processed, skipping: %s\n", absDir)
+		fmt.Printf("\n[DEBUG] Already processed directory: %s\n", absDir)
 		return []string{}, nil
 	}
 	
 	processedDirs[absDir] = true
+	fmt.Printf("\n[DEBUG] Marking directory as processed: %s\n", absDir)
 	
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -202,6 +211,7 @@ func findToolDirectories(dir string, processedDirs map[string]bool) ([]string, e
 		}
 		
 		if processedDirs[subDirAbs] {
+						fmt.Printf("\n[DEBUG] Directory already processed, skipping: %s\n", subDirAbs)
 			continue
 		}
 		
@@ -218,6 +228,7 @@ func findToolDirectories(dir string, processedDirs map[string]bool) ([]string, e
 
 // buildTool はツールディレクトリからTool構造体を構築します。
 func buildTool(dir string, processedDirs map[string]bool) (*Tool, error) {
+	fmt.Printf("\n[DEBUG] buildTool: %s\n", dir)
 	meta, err := readMetadata(filepath.Join(dir, "metadata.yaml"))
 	if err != nil {
 		return nil, err
@@ -233,6 +244,7 @@ func buildTool(dir string, processedDirs map[string]bool) (*Tool, error) {
 	}
 	
 	processedDirs[absDir] = true
+	fmt.Printf("\n[DEBUG] Marking directory as processed: %s\n", absDir)
 	
 	tool := &Tool{}
 	tool.Name = filepath.Base(dir)
@@ -298,6 +310,7 @@ func buildTool(dir string, processedDirs map[string]bool) (*Tool, error) {
 		for _, s := range subDefs {
 			if path, ok := s["path"].(string); ok {
 				if path == "." {
+					fmt.Printf("\n[DEBUG] Found path: . in directory: %s\n", dir)
 					continue
 				}
 				
@@ -308,6 +321,7 @@ func buildTool(dir string, processedDirs map[string]bool) (*Tool, error) {
 				}
 				
 				if processedDirs[absSubDir] {
+					fmt.Printf("\n[DEBUG] Directory already processed, skipping: %s\n", absSubDir)
 					continue
 				}
 				
@@ -334,6 +348,7 @@ func buildTool(dir string, processedDirs map[string]bool) (*Tool, error) {
 
 // buildSubtool はサブツールディレクトリからSubtool構造体を構築します。
 func buildSubtool(dir string, processedDirs map[string]bool) (*Subtool, error) {
+	fmt.Printf("\n[DEBUG] buildSubtool: %s\n", dir)
 	meta, err := readMetadata(filepath.Join(dir, "metadata.yaml"))
 	if err != nil {
 		return nil, err
@@ -349,6 +364,7 @@ func buildSubtool(dir string, processedDirs map[string]bool) (*Subtool, error) {
 	}
 	
 	processedDirs[absDir] = true
+	fmt.Printf("\n[DEBUG] Marking directory as processed: %s\n", absDir)
 	
 	sub := &Subtool{}
 	sub.Name = filepath.Base(dir)
@@ -451,6 +467,7 @@ func buildSubtool(dir string, processedDirs map[string]bool) (*Subtool, error) {
 		for _, s := range subDefs {
 			if path, ok := s["path"].(string); ok {
 				if path == "." {
+					fmt.Printf("\n[DEBUG] Found path: . in directory: %s\n", dir)
 					continue
 				}
 				
@@ -461,6 +478,7 @@ func buildSubtool(dir string, processedDirs map[string]bool) (*Subtool, error) {
 				}
 				
 				if processedDirs[absSubDir] {
+					fmt.Printf("\n[DEBUG] Directory already processed, skipping: %s\n", absSubDir)
 					continue
 				}
 				
@@ -648,8 +666,3 @@ func safeDirName(name string) string {
 	return strings.ReplaceAll(name, " ", "_")
 }
 
-// ファイルが存在するかチェックするユーティリティ関数
-func isFile(path string) bool {
-	info, err := os.Stat(path)
-	return err == nil && !info.IsDir()
-}
