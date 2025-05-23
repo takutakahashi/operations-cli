@@ -62,11 +62,41 @@ func (b *ConfigBuilder) Compile() (*Config, error) {
 		}
 		for _, t := range toolDefs {
 			if path, ok := t["path"].(string); ok {
-				tool, err := buildTool(filepath.Join(b.RootDir, path))
+				fullPath := filepath.Join(b.RootDir, path)
+				fileInfo, err := os.Stat(fullPath)
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("failed to stat path %s: %w", fullPath, err)
 				}
-				cfg.Tools = append(cfg.Tools, *tool)
+				
+				metadataPath := filepath.Join(fullPath, "metadata.yaml")
+				_, metadataErr := os.Stat(metadataPath)
+				
+				if fileInfo.IsDir() && metadataErr == nil {
+					tool, err := buildTool(fullPath)
+					if err != nil {
+						return nil, err
+					}
+					cfg.Tools = append(cfg.Tools, *tool)
+				} else if fileInfo.IsDir() {
+					subDirs, err := findToolDirectories(fullPath)
+					if err != nil {
+						return nil, err
+					}
+					
+					for _, subDir := range subDirs {
+						tool, err := buildTool(subDir)
+						if err != nil {
+							return nil, err
+						}
+						cfg.Tools = append(cfg.Tools, *tool)
+					}
+				} else {
+					tool, err := buildTool(fullPath)
+					if err != nil {
+						return nil, err
+					}
+					cfg.Tools = append(cfg.Tools, *tool)
+				}
 			}
 		}
 	}
@@ -86,6 +116,30 @@ func readMetadata(path string) (map[string]interface{}, error) {
 		return nil, err
 	}
 	return m, nil
+}
+
+func findToolDirectories(dir string) ([]string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read directory %s: %w", dir, err)
+	}
+	
+	var toolDirs []string
+	
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		
+		subDir := filepath.Join(dir, entry.Name())
+		metadataPath := filepath.Join(subDir, "metadata.yaml")
+		
+		if _, err := os.Stat(metadataPath); err == nil {
+			toolDirs = append(toolDirs, subDir)
+		}
+	}
+	
+	return toolDirs, nil
 }
 
 // buildTool はツールディレクトリからTool構造体を構築します。
