@@ -31,7 +31,7 @@ tools:
                 type: string
                 required: true
                 validate: []
-          danger_level: ""
+          danger_level: high
           subtools: []
         - name: variables
           script: |-
@@ -53,7 +53,7 @@ tools:
                 type: string
                 required: true
                 validate: []
-          danger_level: ""
+          danger_level: low
           subtools: []
         - name: conditional
           script: |-
@@ -71,7 +71,7 @@ tools:
                 type: string
                 required: true
                 validate: []
-          danger_level: ""
+          danger_level: medium
           subtools: []
     - name: lifecycle
       beforeExec:
