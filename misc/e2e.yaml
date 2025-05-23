@@ -159,3 +159,26 @@ tools:
             description: Test parameter
             type: string
             required: true
+
+  - name: disabled-tool
+    command:
+      - echo
+    description: "This tool should not be loaded"
+    params:
+      message:
+        description: The message to echo
+        type: string
+        required: true
+    enabled: false
+    
+  - name: partially-disabled
+    command:
+      - echo
+    description: "This tool has both enabled and disabled subtools"
+    subtools:
+      - name: enabled-subtool
+        args: ["This subtool is enabled"]
+        
+      - name: disabled-subtool
+        args: ["This subtool should not be loaded"]
+        enabled: false
