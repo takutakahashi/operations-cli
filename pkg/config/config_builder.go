@@ -322,7 +322,7 @@ func (b *ConfigBuilder) ExportToDir(cfg *Config, outDir string) error {
 	return nil
 }
 
-func writeMetadata(path string, meta map[string]interface{}) error {
+func WriteMetadata(path string, meta map[string]interface{}) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
@@ -334,6 +334,10 @@ func writeMetadata(path string, meta map[string]interface{}) error {
 	enc := yaml.NewEncoder(f)
 	defer enc.Close()
 	return enc.Encode(meta)
+}
+
+func writeMetadata(path string, meta map[string]interface{}) error {
+	return WriteMetadata(path, meta)
 }
 
 func exportTool(tool *Tool, dir string) error {
