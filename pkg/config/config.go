@@ -34,6 +34,7 @@ type Tool struct {
 	AfterExec   []string   `yaml:"afterExec,omitempty"`
 	Params      Parameters `yaml:"params"`
 	Subtools    []Subtool  `yaml:"subtools"`
+	Enabled     *bool      `yaml:"enabled,omitempty"`
 }
 
 // Subtool represents a subtool configuration
@@ -47,6 +48,7 @@ type Subtool struct {
 	Params      Parameters `yaml:"params"`
 	DangerLevel string     `yaml:"danger_level"`
 	Subtools    []Subtool  `yaml:"subtools"`
+	Enabled     *bool      `yaml:"enabled,omitempty"`
 }
 
 // Parameter represents a parameter configuration
