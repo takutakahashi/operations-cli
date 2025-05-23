@@ -1,0 +1,6 @@
+script: main.sh
+params:
+  count:
+    description: Test count for tool2
+    type: string
+    required: true

@@ -1,0 +1,6 @@
+script: main.sh
+params:
+  message:
+    description: Test message for tool1
+    type: string
+    required: true

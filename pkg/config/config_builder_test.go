@@ -255,3 +255,80 @@ afterExec:
 		t.Errorf("Expected main script content '%s', got '%s'", mainScriptContent, tool.Script)
 	}
 }
+
+func TestCompileWithDirectoryTools(t *testing.T) {
+	// テスト用の一時ディレクトリを作成
+	tmpDir, err := os.MkdirTemp("", "config-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	toolsDir := filepath.Join(tmpDir, "tools-dir")
+	if err := os.MkdirAll(toolsDir, 0755); err != nil {
+		t.Fatalf("Failed to create tools dir: %v", err)
+	}
+
+	// 複数のツールディレクトリを作成
+	tool1Dir := filepath.Join(toolsDir, "tool1")
+	tool2Dir := filepath.Join(toolsDir, "tool2")
+	
+	if err := os.MkdirAll(tool1Dir, 0755); err != nil {
+		t.Fatalf("Failed to create tool1 dir: %v", err)
+	}
+	if err := os.MkdirAll(tool2Dir, 0755); err != nil {
+		t.Fatalf("Failed to create tool2 dir: %v", err)
+	}
+
+	tool1Meta := `params:
+  param1:
+    description: Test parameter 1
+    type: string
+    required: true
+script: main.sh`
+
+	tool2Meta := `params:
+  param2:
+    description: Test parameter 2
+    type: string
+    required: true
+script: main.sh`
+
+	// ルートのmetadata.yamlを作成（ディレクトリを指定）
+	rootMeta := `tools:
+  - path: tools-dir`
+
+	if err := os.WriteFile(filepath.Join(tmpDir, "metadata.yaml"), []byte(rootMeta), 0644); err != nil {
+		t.Fatalf("Failed to write root metadata: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(tool1Dir, "metadata.yaml"), []byte(tool1Meta), 0644); err != nil {
+		t.Fatalf("Failed to write tool1 metadata: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(tool2Dir, "metadata.yaml"), []byte(tool2Meta), 0644); err != nil {
+		t.Fatalf("Failed to write tool2 metadata: %v", err)
+	}
+
+	builder := NewConfigBuilder(tmpDir)
+	cfg, err := builder.Compile()
+	if err != nil {
+		t.Fatalf("Compile failed: %v", err)
+	}
+
+	if len(cfg.Tools) != 2 {
+		t.Errorf("Expected 2 tools, got %d", len(cfg.Tools))
+	}
+
+	toolNames := make(map[string]bool)
+	for _, tool := range cfg.Tools {
+		toolNames[tool.Name] = true
+	}
+
+	if !toolNames["tool1"] {
+		t.Errorf("Expected tool1 to be present")
+	}
+	if !toolNames["tool2"] {
+		t.Errorf("Expected tool2 to be present")
+	}
+}
