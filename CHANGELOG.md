@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.28](https://github.com/takutakahashi/operation-mcp/compare/v0.6.27...v0.6.28) - 2025-05-23
+- Add support for processing all subdirectories in tools path by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/122
+
 ## [v0.6.27](https://github.com/takutakahashi/operation-mcp/compare/v0.6.26...v0.6.27) - 2025-05-23
 - ツールに enabled フラグを実装 by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/118
 - Fix: Update danger_level values in e2e test expected output by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/120
