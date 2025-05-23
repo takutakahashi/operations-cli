@@ -120,7 +120,7 @@ func TestFindTool(t *testing.T) {
 	mgr := NewManager(cfg)
 
 	// Test finding root tool
-	command, script, params, dangerLevel, beforeExec, afterExec, err := mgr.FindTool("kubectl")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err := mgr.FindTool("kubectl")
 	if err != nil {
 		t.Fatalf("FindTool failed for root tool: %v", err)
 	}
@@ -142,9 +142,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
+	if len(envFromLocal) > 0 {
+		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	}
 
 	// Test finding subtool
-	command, script, params, dangerLevel, beforeExec, afterExec, err = mgr.FindTool("kubectl_get")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("kubectl_get")
 	if err != nil {
 		t.Fatalf("FindTool failed for subtool: %v", err)
 	}
@@ -169,9 +172,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
+	if len(envFromLocal) > 0 {
+		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	}
 
 	// Test finding subtool with danger level
-	command, script, params, dangerLevel, beforeExec, afterExec, err = mgr.FindTool("kubectl_delete")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("kubectl_delete")
 	if err != nil {
 		t.Fatalf("FindTool failed for subtool with danger level: %v", err)
 	}
@@ -196,9 +202,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
+	if len(envFromLocal) > 0 {
+		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	}
 
 	// Test finding script tool
-	command, script, params, dangerLevel, beforeExec, afterExec, err = mgr.FindTool("script-tool")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("script-tool")
 	if err != nil {
 		t.Fatalf("FindTool failed for script tool: %v", err)
 	}
@@ -220,9 +229,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
+	if len(envFromLocal) > 0 {
+		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	}
 
 	// Test finding script subtool
-	command, script, params, dangerLevel, beforeExec, afterExec, err = mgr.FindTool("script-tool_script-subtool")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("script-tool_script-subtool")
 	if err != nil {
 		t.Fatalf("FindTool failed for script subtool: %v", err)
 	}
@@ -244,9 +256,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
+	if len(envFromLocal) > 0 {
+		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	}
 
 	// Test finding nested subtool
-	command, script, params, dangerLevel, beforeExec, afterExec, err = mgr.FindTool("parent_child_grandchild")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("parent_child_grandchild")
 	if err != nil {
 		t.Fatalf("FindTool failed for nested subtool: %v", err)
 	}
@@ -283,21 +298,24 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
+	if len(envFromLocal) > 0 {
+		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	}
 
 	// Test finding non-existent tool
-	_, _, _, _, _, _, err = mgr.FindTool("nonexistent")
+	_, _, _, _, _, _, _, err = mgr.FindTool("nonexistent")
 	if err == nil {
 		t.Errorf("FindTool should fail for non-existent tool")
 	}
 
 	// Test finding non-existent subtool
-	_, _, _, _, _, _, err = mgr.FindTool("kubectl_nonexistent")
+	_, _, _, _, _, _, _, err = mgr.FindTool("kubectl_nonexistent")
 	if err == nil {
 		t.Errorf("FindTool should fail for non-existent subtool")
 	}
 
 	// Test finding non-existent nested subtool
-	_, _, _, _, _, _, err = mgr.FindTool("parent_child_nonexistent")
+	_, _, _, _, _, _, _, err = mgr.FindTool("parent_child_nonexistent")
 	if err == nil {
 		t.Errorf("FindTool should fail for non-existent nested subtool")
 	}
