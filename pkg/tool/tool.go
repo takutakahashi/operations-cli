@@ -40,7 +40,8 @@ type CompiledTool struct {
 	BeforeExec   []string
 	AfterExec    []string
 	Params       map[string]config.Parameter
-	EnvFromLocal []string
+	EnvFrom      config.EnvFrom
+	EnvFromLocal []string // Deprecated: Use EnvFrom.Local instead
 	DangerLevel  string
 }
 
@@ -52,7 +53,8 @@ type ToolInfo struct {
 	DangerLevel  string
 	BeforeExec   []string
 	AfterExec    []string
-	EnvFromLocal []string
+	EnvFrom      config.EnvFrom
+	EnvFromLocal []string // Deprecated: Use EnvFrom.Local instead
 }
 
 // NewManager creates a new tool manager
@@ -81,19 +83,20 @@ func NewManager(cfg *config.Config) *Manager {
 			BeforeExec:   tool.BeforeExec,
 			AfterExec:    tool.AfterExec,
 			Params:       tool.Params,
+			EnvFrom:      tool.EnvFrom,
 			EnvFromLocal: tool.EnvFromLocal,
 		}
 		mgr.compiledTools[toolName] = root
 
 		// Compile subtools recursively
-		mgr.compileSubtools(toolName, tool.Command, tool.Params, tool.EnvFromLocal, tool.Subtools)
+		mgr.compileSubtools(toolName, tool.Command, tool.Params, tool.EnvFrom, tool.EnvFromLocal, tool.Subtools)
 	}
 
 	return mgr
 }
 
 // compileSubtools recursively compiles subtools into flat structure
-func (m *Manager) compileSubtools(parentPath string, parentCommand []string, parentParams map[string]config.Parameter, parentEnvFromLocal []string, subtools []config.Subtool) {
+func (m *Manager) compileSubtools(parentPath string, parentCommand []string, parentParams map[string]config.Parameter, parentEnvFrom config.EnvFrom, parentEnvFromLocal []string, subtools []config.Subtool) {
 	for _, subtool := range subtools {
 		if subtool.Enabled != nil && !*subtool.Enabled {
 			continue
@@ -152,17 +155,25 @@ func (m *Manager) compileSubtools(parentPath string, parentCommand []string, par
 			BeforeExec:   subtool.BeforeExec,
 			AfterExec:    subtool.AfterExec,
 			Params:       params,
+			EnvFrom:      mergeEnvFrom(parentEnvFrom, subtool.EnvFrom),
 			EnvFromLocal: mergeEnvFromLocal(parentEnvFromLocal, subtool.EnvFromLocal),
 			DangerLevel:  subtool.DangerLevel,
 		}
 
 		// Recursively compile nested subtools with merged parameters
-		m.compileSubtools(toolPath, command, params, mergeEnvFromLocal(parentEnvFromLocal, subtool.EnvFromLocal), subtool.Subtools)
+		m.compileSubtools(toolPath, command, params, mergeEnvFrom(parentEnvFrom, subtool.EnvFrom), mergeEnvFromLocal(parentEnvFromLocal, subtool.EnvFromLocal), subtool.Subtools)
 	}
 }
 
 func mergeEnvFromLocal(parent, subtool []string) []string {
 	if len(subtool) > 0 {
+		return subtool
+	}
+	return parent
+}
+
+func mergeEnvFrom(parent, subtool config.EnvFrom) config.EnvFrom {
+	if len(subtool.Local) > 0 {
 		return subtool
 	}
 	return parent
@@ -179,13 +190,17 @@ func (m *Manager) WithLogger(l logger.Logger) {
 }
 
 // FindTool finds a tool by its name
-func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config.Parameter, string, []string, []string, []string, error) {
+func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config.Parameter, string, []string, []string, config.EnvFrom, error) {
 	tool, exists := m.compiledTools[toolPath]
 	if !exists {
-		return nil, "", nil, "", nil, nil, nil, fmt.Errorf("tool not found: %s", toolPath)
+		return nil, "", nil, "", nil, nil, config.EnvFrom{}, fmt.Errorf("tool not found: %s", toolPath)
 	}
 
-	return tool.Command, tool.Script, tool.Params, tool.DangerLevel, tool.BeforeExec, tool.AfterExec, tool.EnvFromLocal, nil
+	if len(tool.EnvFrom.Local) == 0 && len(tool.EnvFromLocal) > 0 {
+		tool.EnvFrom.Local = tool.EnvFromLocal
+	}
+
+	return tool.Command, tool.Script, tool.Params, tool.DangerLevel, tool.BeforeExec, tool.AfterExec, tool.EnvFrom, nil
 }
 
 // ExecuteTool executes a tool with the given parameters
@@ -195,7 +210,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 	m.logger.Debug("Parameters: %v", paramValues)
 
 	// Find the tool
-	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err := m.FindTool(toolPath)
+	command, script, params, dangerLevel, beforeExec, afterExec, envFrom, err := m.FindTool(toolPath)
 	if err != nil {
 		return "", err
 	}
@@ -209,7 +224,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 	if parentTool != nil && parentTool.BeforeExec != nil {
 		for _, script := range parentTool.BeforeExec {
 			m.logger.Debug("Executing parent beforeExec: %s", script)
-			output, err := executeScript(script, paramValues, envFromLocal)
+			output, err := executeScript(script, paramValues, envFrom)
 			if err != nil {
 				return "", fmt.Errorf("failed to execute parent beforeExec: %w", err)
 			}
@@ -220,7 +235,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 	// beforeExecを順に実行
 	for _, script := range beforeExec {
 		m.logger.Debug("Executing beforeExec: %s", script)
-		output, err := executeScript(script, paramValues, envFromLocal)
+		output, err := executeScript(script, paramValues, envFrom)
 		if err != nil {
 			return "", fmt.Errorf("failed to execute beforeExec: %w", err)
 		}
@@ -233,7 +248,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 	}
 
 	// Execute the tool
-	output, err := m.executeCommand(command, script, paramValues, dangerLevel, envFromLocal)
+	output, err := m.executeCommand(command, script, paramValues, dangerLevel, envFrom)
 	if err != nil {
 		return "", err
 	}
@@ -242,7 +257,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 	// afterExecを順に実行
 	for _, script := range afterExec {
 		m.logger.Debug("Executing afterExec: %s", script)
-		output, err := executeScript(script, paramValues, envFromLocal)
+		output, err := executeScript(script, paramValues, envFrom)
 		if err != nil {
 			return "", fmt.Errorf("failed to execute afterExec: %w", err)
 		}
@@ -253,7 +268,7 @@ func (m *Manager) ExecuteTool(toolPath string, paramValues map[string]string) (s
 	if parentTool != nil && parentTool.AfterExec != nil {
 		for _, script := range parentTool.AfterExec {
 			m.logger.Debug("Executing parent afterExec: %s", script)
-			output, err := executeScript(script, paramValues, envFromLocal)
+			output, err := executeScript(script, paramValues, envFrom)
 			if err != nil {
 				return "", fmt.Errorf("failed to execute parent afterExec: %w", err)
 			}
@@ -276,7 +291,7 @@ func (m *Manager) getParentTool(toolPath string) *CompiledTool {
 }
 
 // executeScript executes a script with the given parameters
-func executeScript(script string, paramValues map[string]string, envFromLocal []string) (string, error) {
+func executeScript(script string, paramValues map[string]string, envFrom config.EnvFrom) (string, error) {
 	// Replace template parameters in script
 	if strings.Contains(script, "{{") {
 		tmpl, err := template.New("script").Parse(script)
@@ -321,9 +336,9 @@ func executeScript(script string, paramValues map[string]string, envFromLocal []
 	cmd := exec.Command("/bin/bash", tmpFile.Name())
 	cmd.Stdin = os.Stdin
 	
-	if len(envFromLocal) > 0 {
+	if len(envFrom.Local) > 0 {
 		cmd.Env = []string{}
-		for _, envVar := range envFromLocal {
+		for _, envVar := range envFrom.Local {
 			if value := os.Getenv(envVar); value != "" {
 				cmd.Env = append(cmd.Env, envVar+"="+value)
 			}
@@ -341,7 +356,7 @@ func executeScript(script string, paramValues map[string]string, envFromLocal []
 // ExecuteRawTool executes a tool with the given raw arguments
 func (m *Manager) ExecuteRawTool(toolPath string, args []string) (string, error) {
 	// Find the tool and subtool
-	command, script, params, dangerLevel, _, _, envFromLocal, err := m.FindTool(toolPath)
+	command, script, params, dangerLevel, _, _, envFrom, err := m.FindTool(toolPath)
 	if err != nil {
 		return "", err
 	}
@@ -403,7 +418,7 @@ func (m *Manager) ExecuteRawTool(toolPath string, args []string) (string, error)
 
 	// スクリプトが指定されている場合はそれを実行
 	if script != "" {
-		return executeScript(script, paramValues, envFromLocal)
+		return executeScript(script, paramValues, envFrom)
 	}
 
 	// コマンドが指定されている場合は従来通り実行
@@ -460,11 +475,12 @@ func (m *Manager) ListTools() map[string]config.Tool {
 			}
 		}
 
-		toolInfo := config.Tool{
+	toolInfo := config.Tool{
 			Name:         name,
 			Command:      tool.Command,
 			Script:       tool.Script,
 			Params:       tool.Params,
+			EnvFrom:      tool.EnvFrom,
 			EnvFromLocal: tool.EnvFromLocal,
 			Subtools:     subtools,
 		}
@@ -494,7 +510,7 @@ func (m *Manager) GetCompiledTools() map[string]*CompiledTool {
 }
 
 func (m *Manager) GetToolInfo(toolPath string) (*ToolInfo, error) {
-	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err := m.FindTool(toolPath)
+	command, script, params, dangerLevel, beforeExec, afterExec, envFrom, err := m.FindTool(toolPath)
 	if err != nil {
 		return nil, err
 	}
@@ -505,7 +521,8 @@ func (m *Manager) GetToolInfo(toolPath string) (*ToolInfo, error) {
 		DangerLevel:  dangerLevel,
 		BeforeExec:   beforeExec,
 		AfterExec:    afterExec,
-		EnvFromLocal: envFromLocal,
+		EnvFrom:      envFrom,
+		EnvFromLocal: envFrom.Local,
 	}, nil
 }
 
@@ -522,7 +539,7 @@ func validateParams(params map[string]config.Parameter, paramValues map[string]s
 	return nil
 }
 
-func (m *Manager) executeCommand(command []string, script string, paramValues map[string]string, dangerLevel string, envFromLocal []string) (string, error) {
+func (m *Manager) executeCommand(command []string, script string, paramValues map[string]string, dangerLevel string, envFrom config.EnvFrom) (string, error) {
 	// Check danger level for the tool itself
 	if dangerLevel != "" {
 		proceed, err := m.dangerManager.CheckDangerLevel(dangerLevel, "", "", nil)
@@ -538,7 +555,7 @@ func (m *Manager) executeCommand(command []string, script string, paramValues ma
 	var err error
 	// Execute the main script or command
 	if script != "" {
-		result, err = executeScript(script, paramValues, envFromLocal)
+		result, err = executeScript(script, paramValues, envFrom)
 		if err != nil {
 			return result, err
 		}

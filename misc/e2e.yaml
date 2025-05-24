@@ -190,6 +190,10 @@ tools:
       echo "ENV_TEST_VAR1=${ENV_TEST_VAR1:-not set}"
       echo "ENV_TEST_VAR2=${ENV_TEST_VAR2:-not set}"
       echo "ENV_TEST_VAR3=${ENV_TEST_VAR3:-not set}"
+    envFrom:
+      local:
+        - ENV_TEST_VAR1
+        - ENV_TEST_VAR2
     envFromLocal:
       - ENV_TEST_VAR1
       - ENV_TEST_VAR2
@@ -209,5 +213,8 @@ tools:
           echo "ENV_TEST_VAR1=${ENV_TEST_VAR1:-not set}"
           echo "ENV_TEST_VAR2=${ENV_TEST_VAR2:-not set}"
           echo "ENV_TEST_VAR3=${ENV_TEST_VAR3:-not set}"
+        envFrom:
+          local:
+            - ENV_TEST_VAR3
         envFromLocal:
           - ENV_TEST_VAR3

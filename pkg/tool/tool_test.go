@@ -120,7 +120,7 @@ func TestFindTool(t *testing.T) {
 	mgr := NewManager(cfg)
 
 	// Test finding root tool
-	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err := mgr.FindTool("kubectl")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFrom, err := mgr.FindTool("kubectl")
 	if err != nil {
 		t.Fatalf("FindTool failed for root tool: %v", err)
 	}
@@ -142,12 +142,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
-	if len(envFromLocal) > 0 {
-		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	if len(envFrom.Local) > 0 {
+		t.Errorf("Expected empty envFrom.Local, got '%v'", envFrom.Local)
 	}
 
 	// Test finding subtool
-	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("kubectl_get")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFrom, err = mgr.FindTool("kubectl_get")
 	if err != nil {
 		t.Fatalf("FindTool failed for subtool: %v", err)
 	}
@@ -172,12 +172,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
-	if len(envFromLocal) > 0 {
-		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	if len(envFrom.Local) > 0 {
+		t.Errorf("Expected empty envFrom.Local, got '%v'", envFrom.Local)
 	}
 
 	// Test finding subtool with danger level
-	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("kubectl_delete")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFrom, err = mgr.FindTool("kubectl_delete")
 	if err != nil {
 		t.Fatalf("FindTool failed for subtool with danger level: %v", err)
 	}
@@ -202,12 +202,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
-	if len(envFromLocal) > 0 {
-		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	if len(envFrom.Local) > 0 {
+		t.Errorf("Expected empty envFrom.Local, got '%v'", envFrom.Local)
 	}
 
 	// Test finding script tool
-	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("script-tool")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFrom, err = mgr.FindTool("script-tool")
 	if err != nil {
 		t.Fatalf("FindTool failed for script tool: %v", err)
 	}
@@ -229,12 +229,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
-	if len(envFromLocal) > 0 {
-		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	if len(envFrom.Local) > 0 {
+		t.Errorf("Expected empty envFrom.Local, got '%v'", envFrom.Local)
 	}
 
 	// Test finding script subtool
-	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("script-tool_script-subtool")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFrom, err = mgr.FindTool("script-tool_script-subtool")
 	if err != nil {
 		t.Fatalf("FindTool failed for script subtool: %v", err)
 	}
@@ -256,12 +256,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
-	if len(envFromLocal) > 0 {
-		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	if len(envFrom.Local) > 0 {
+		t.Errorf("Expected empty envFrom.Local, got '%v'", envFrom.Local)
 	}
 
 	// Test finding nested subtool
-	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("parent_child_grandchild")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFrom, err = mgr.FindTool("parent_child_grandchild")
 	if err != nil {
 		t.Fatalf("FindTool failed for nested subtool: %v", err)
 	}
@@ -298,8 +298,8 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
-	if len(envFromLocal) > 0 {
-		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	if len(envFrom.Local) > 0 {
+		t.Errorf("Expected empty envFrom.Local, got '%v'", envFrom.Local)
 	}
 
 	// Test finding non-existent tool
@@ -481,6 +481,12 @@ func TestEnvFromLocal(t *testing.T) {
 			{
 				Name:   "env-test",
 				Script: "#!/bin/bash\necho \"ENV1=$TEST_ENV_VAR1 ENV2=$TEST_ENV_VAR2 ENV3=$TEST_ENV_VAR3 ENV4=$TEST_ENV_VAR4\"",
+				EnvFrom: config.EnvFrom{
+					Local: []string{
+						"TEST_ENV_VAR1",
+						"TEST_ENV_VAR2",
+					},
+				},
 				EnvFromLocal: []string{
 					"TEST_ENV_VAR1",
 					"TEST_ENV_VAR2",
@@ -493,6 +499,12 @@ func TestEnvFromLocal(t *testing.T) {
 					{
 						Name:   "override",
 						Script: "#!/bin/bash\necho \"ENV1=$TEST_ENV_VAR1 ENV2=$TEST_ENV_VAR2 ENV3=$TEST_ENV_VAR3 ENV4=$TEST_ENV_VAR4\"",
+						EnvFrom: config.EnvFrom{
+							Local: []string{
+								"TEST_ENV_VAR3",
+								"TEST_ENV_VAR4",
+							},
+						},
 						EnvFromLocal: []string{
 							"TEST_ENV_VAR3",
 							"TEST_ENV_VAR4",
