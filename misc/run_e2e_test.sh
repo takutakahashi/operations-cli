@@ -202,4 +202,63 @@ fi
 
 echo -e "${GREEN}✓ Test 12 passed${NC}"
 
+echo -e "\n${GREEN}Test 13: Environment variable filtering with envFromLocal${NC}"
+
+# Set test environment variables
+export ENV_TEST_VAR1="value1"
+export ENV_TEST_VAR2="value2"
+export ENV_TEST_VAR3="value3"
+
+echo -e "\n${YELLOW}Testing parent tool with envFromLocal${NC}"
+output=$(${OPERATIONS_BIN} exec env-test)
+debug "Output: $output"
+
+if echo "$output" | grep -q "ENV_TEST_VAR1=value1" && \
+   echo "$output" | grep -q "ENV_TEST_VAR2=value2" && \
+   echo "$output" | grep -q "ENV_TEST_VAR3=not set"; then
+    echo -e "${GREEN}✓ Parent tool test passed${NC}"
+else
+    echo -e "${RED}✗ Parent tool test failed${NC}"
+    echo "Expected ENV_TEST_VAR1=value1, ENV_TEST_VAR2=value2, ENV_TEST_VAR3=not set"
+    echo "Got: $output"
+    exit 1
+fi
+
+echo -e "\n${YELLOW}Testing subtool inheriting envFromLocal${NC}"
+output=$(${OPERATIONS_BIN} exec env-test_inherit)
+debug "Output: $output"
+
+if echo "$output" | grep -q "ENV_TEST_VAR1=value1" && \
+   echo "$output" | grep -q "ENV_TEST_VAR2=value2" && \
+   echo "$output" | grep -q "ENV_TEST_VAR3=not set"; then
+    echo -e "${GREEN}✓ Subtool inheritance test passed${NC}"
+else
+    echo -e "${RED}✗ Subtool inheritance test failed${NC}"
+    echo "Expected ENV_TEST_VAR1=value1, ENV_TEST_VAR2=value2, ENV_TEST_VAR3=not set"
+    echo "Got: $output"
+    exit 1
+fi
+
+echo -e "\n${YELLOW}Testing subtool overriding envFromLocal${NC}"
+output=$(${OPERATIONS_BIN} exec env-test_override)
+debug "Output: $output"
+
+if echo "$output" | grep -q "ENV_TEST_VAR1=not set" && \
+   echo "$output" | grep -q "ENV_TEST_VAR2=not set" && \
+   echo "$output" | grep -q "ENV_TEST_VAR3=value3"; then
+    echo -e "${GREEN}✓ Subtool override test passed${NC}"
+else
+    echo -e "${RED}✗ Subtool override test failed${NC}"
+    echo "Expected ENV_TEST_VAR1=not set, ENV_TEST_VAR2=not set, ENV_TEST_VAR3=value3"
+    echo "Got: $output"
+    exit 1
+fi
+
+# Clean up test environment variables
+unset ENV_TEST_VAR1
+unset ENV_TEST_VAR2
+unset ENV_TEST_VAR3
+
+echo -e "${GREEN}✓ Test 13 passed${NC}"
+
 echo -e "\n${GREEN}All e2e tests passed successfully!${NC}"

@@ -182,3 +182,32 @@ tools:
       - name: disabled-subtool
         args: ["This subtool should not be loaded"]
         enabled: false
+
+  - name: env-test
+    description: "Tool for testing envFromLocal feature"
+    script: |
+      #!/bin/bash
+      echo "ENV_TEST_VAR1=${ENV_TEST_VAR1:-not set}"
+      echo "ENV_TEST_VAR2=${ENV_TEST_VAR2:-not set}"
+      echo "ENV_TEST_VAR3=${ENV_TEST_VAR3:-not set}"
+    envFromLocal:
+      - ENV_TEST_VAR1
+      - ENV_TEST_VAR2
+    subtools:
+      - name: inherit
+        description: "Subtool that inherits envFromLocal from parent"
+        script: |
+          #!/bin/bash
+          echo "ENV_TEST_VAR1=${ENV_TEST_VAR1:-not set}"
+          echo "ENV_TEST_VAR2=${ENV_TEST_VAR2:-not set}"
+          echo "ENV_TEST_VAR3=${ENV_TEST_VAR3:-not set}"
+      
+      - name: override
+        description: "Subtool that overrides parent's envFromLocal"
+        script: |
+          #!/bin/bash
+          echo "ENV_TEST_VAR1=${ENV_TEST_VAR1:-not set}"
+          echo "ENV_TEST_VAR2=${ENV_TEST_VAR2:-not set}"
+          echo "ENV_TEST_VAR3=${ENV_TEST_VAR3:-not set}"
+        envFromLocal:
+          - ENV_TEST_VAR3
