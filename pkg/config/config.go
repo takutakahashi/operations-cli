@@ -26,29 +26,31 @@ type Action struct {
 
 // Tool represents a tool configuration
 type Tool struct {
-	Name        string     `yaml:"name"`
-	Description string     `yaml:"description,omitempty"`
-	Command     []string   `yaml:"command,omitempty"`
-	Script      string     `yaml:"script,omitempty"`
-	BeforeExec  []string   `yaml:"beforeExec,omitempty"`
-	AfterExec   []string   `yaml:"afterExec,omitempty"`
-	Params      Parameters `yaml:"params"`
-	Subtools    []Subtool  `yaml:"subtools"`
-	Enabled     *bool      `yaml:"enabled,omitempty"`
+	Name         string     `yaml:"name"`
+	Description  string     `yaml:"description,omitempty"`
+	Command      []string   `yaml:"command,omitempty"`
+	Script       string     `yaml:"script,omitempty"`
+	BeforeExec   []string   `yaml:"beforeExec,omitempty"`
+	AfterExec    []string   `yaml:"afterExec,omitempty"`
+	Params       Parameters `yaml:"params"`
+	EnvFromLocal []string   `yaml:"envFromLocal,omitempty"`
+	Subtools     []Subtool  `yaml:"subtools"`
+	Enabled      *bool      `yaml:"enabled,omitempty"`
 }
 
 // Subtool represents a subtool configuration
 type Subtool struct {
-	Name        string     `yaml:"name"`
-	Description string     `yaml:"description,omitempty"`
-	Args        []string   `yaml:"args,omitempty"`
-	Script      string     `yaml:"script,omitempty"`
-	BeforeExec  []string   `yaml:"beforeExec,omitempty"`
-	AfterExec   []string   `yaml:"afterExec,omitempty"`
-	Params      Parameters `yaml:"params"`
-	DangerLevel string     `yaml:"danger_level"`
-	Subtools    []Subtool  `yaml:"subtools"`
-	Enabled     *bool      `yaml:"enabled,omitempty"`
+	Name         string     `yaml:"name"`
+	Description  string     `yaml:"description,omitempty"`
+	Args         []string   `yaml:"args,omitempty"`
+	Script       string     `yaml:"script,omitempty"`
+	BeforeExec   []string   `yaml:"beforeExec,omitempty"`
+	AfterExec    []string   `yaml:"afterExec,omitempty"`
+	Params       Parameters `yaml:"params"`
+	EnvFromLocal []string   `yaml:"envFromLocal,omitempty"`
+	DangerLevel  string     `yaml:"danger_level"`
+	Subtools     []Subtool  `yaml:"subtools"`
+	Enabled      *bool      `yaml:"enabled,omitempty"`
 }
 
 // Parameter represents a parameter configuration

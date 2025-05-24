@@ -120,7 +120,7 @@ func TestFindTool(t *testing.T) {
 	mgr := NewManager(cfg)
 
 	// Test finding root tool
-	command, script, params, dangerLevel, beforeExec, afterExec, err := mgr.FindTool("kubectl")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err := mgr.FindTool("kubectl")
 	if err != nil {
 		t.Fatalf("FindTool failed for root tool: %v", err)
 	}
@@ -142,9 +142,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
+	if len(envFromLocal) > 0 {
+		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	}
 
 	// Test finding subtool
-	command, script, params, dangerLevel, beforeExec, afterExec, err = mgr.FindTool("kubectl_get")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("kubectl_get")
 	if err != nil {
 		t.Fatalf("FindTool failed for subtool: %v", err)
 	}
@@ -169,9 +172,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
+	if len(envFromLocal) > 0 {
+		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	}
 
 	// Test finding subtool with danger level
-	command, script, params, dangerLevel, beforeExec, afterExec, err = mgr.FindTool("kubectl_delete")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("kubectl_delete")
 	if err != nil {
 		t.Fatalf("FindTool failed for subtool with danger level: %v", err)
 	}
@@ -196,9 +202,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
+	if len(envFromLocal) > 0 {
+		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	}
 
 	// Test finding script tool
-	command, script, params, dangerLevel, beforeExec, afterExec, err = mgr.FindTool("script-tool")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("script-tool")
 	if err != nil {
 		t.Fatalf("FindTool failed for script tool: %v", err)
 	}
@@ -220,9 +229,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
+	if len(envFromLocal) > 0 {
+		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	}
 
 	// Test finding script subtool
-	command, script, params, dangerLevel, beforeExec, afterExec, err = mgr.FindTool("script-tool_script-subtool")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("script-tool_script-subtool")
 	if err != nil {
 		t.Fatalf("FindTool failed for script subtool: %v", err)
 	}
@@ -244,9 +256,12 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
+	if len(envFromLocal) > 0 {
+		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	}
 
 	// Test finding nested subtool
-	command, script, params, dangerLevel, beforeExec, afterExec, err = mgr.FindTool("parent_child_grandchild")
+	command, script, params, dangerLevel, beforeExec, afterExec, envFromLocal, err = mgr.FindTool("parent_child_grandchild")
 	if err != nil {
 		t.Fatalf("FindTool failed for nested subtool: %v", err)
 	}
@@ -283,21 +298,24 @@ func TestFindTool(t *testing.T) {
 	if len(afterExec) > 0 {
 		t.Errorf("Expected empty afterExec, got '%v'", afterExec)
 	}
+	if len(envFromLocal) > 0 {
+		t.Errorf("Expected empty envFromLocal, got '%v'", envFromLocal)
+	}
 
 	// Test finding non-existent tool
-	_, _, _, _, _, _, err = mgr.FindTool("nonexistent")
+	_, _, _, _, _, _, _, err = mgr.FindTool("nonexistent")
 	if err == nil {
 		t.Errorf("FindTool should fail for non-existent tool")
 	}
 
 	// Test finding non-existent subtool
-	_, _, _, _, _, _, err = mgr.FindTool("kubectl_nonexistent")
+	_, _, _, _, _, _, _, err = mgr.FindTool("kubectl_nonexistent")
 	if err == nil {
 		t.Errorf("FindTool should fail for non-existent subtool")
 	}
 
 	// Test finding non-existent nested subtool
-	_, _, _, _, _, _, err = mgr.FindTool("parent_child_nonexistent")
+	_, _, _, _, _, _, _, err = mgr.FindTool("parent_child_nonexistent")
 	if err == nil {
 		t.Errorf("FindTool should fail for non-existent nested subtool")
 	}
@@ -438,4 +456,99 @@ func (m *mockExecutor) ExecuteWithOutput(command []string) (string, error) {
 
 func (m *mockExecutor) Close() error {
 	return nil
+}
+
+func TestEnvFromLocal(t *testing.T) {
+	// Skip test if running in CI environment
+	if os.Getenv("CI") == "true" {
+		t.Skip("Skipping test in CI environment")
+	}
+
+	os.Setenv("TEST_ENV_VAR1", "value1")
+	os.Setenv("TEST_ENV_VAR2", "value2")
+	os.Setenv("TEST_ENV_VAR3", "value3")
+	os.Setenv("TEST_ENV_VAR4", "value4")
+	defer func() {
+		os.Unsetenv("TEST_ENV_VAR1")
+		os.Unsetenv("TEST_ENV_VAR2")
+		os.Unsetenv("TEST_ENV_VAR3")
+		os.Unsetenv("TEST_ENV_VAR4")
+	}()
+
+	// Create a test config with envFromLocal settings
+	cfg := &config.Config{
+		Tools: []config.Tool{
+			{
+				Name:   "env-test",
+				Script: "#!/bin/bash\necho \"ENV1=$TEST_ENV_VAR1 ENV2=$TEST_ENV_VAR2 ENV3=$TEST_ENV_VAR3 ENV4=$TEST_ENV_VAR4\"",
+				EnvFromLocal: []string{
+					"TEST_ENV_VAR1",
+					"TEST_ENV_VAR2",
+				},
+				Subtools: []config.Subtool{
+					{
+						Name:   "inherit",
+						Script: "#!/bin/bash\necho \"ENV1=$TEST_ENV_VAR1 ENV2=$TEST_ENV_VAR2 ENV3=$TEST_ENV_VAR3 ENV4=$TEST_ENV_VAR4\"",
+					},
+					{
+						Name:   "override",
+						Script: "#!/bin/bash\necho \"ENV1=$TEST_ENV_VAR1 ENV2=$TEST_ENV_VAR2 ENV3=$TEST_ENV_VAR3 ENV4=$TEST_ENV_VAR4\"",
+						EnvFromLocal: []string{
+							"TEST_ENV_VAR3",
+							"TEST_ENV_VAR4",
+						},
+					},
+				},
+			},
+			{
+				Name:   "no-env",
+				Script: "#!/bin/bash\necho \"ENV1=$TEST_ENV_VAR1 ENV2=$TEST_ENV_VAR2 ENV3=$TEST_ENV_VAR3 ENV4=$TEST_ENV_VAR4\"",
+			},
+		},
+	}
+
+	// Create a tool manager
+	mgr := NewManager(cfg)
+
+	output, err := mgr.ExecuteTool("env-test", map[string]string{})
+	if err != nil {
+		t.Fatalf("ExecuteTool failed for env-test: %v", err)
+	}
+	if !strings.Contains(output, "ENV1=value1") || !strings.Contains(output, "ENV2=value2") {
+		t.Errorf("Expected output to contain ENV1=value1 and ENV2=value2, got: %s", output)
+	}
+	if strings.Contains(output, "ENV3=value3") || strings.Contains(output, "ENV4=value4") {
+		t.Errorf("Expected output to not contain ENV3=value3 or ENV4=value4, got: %s", output)
+	}
+
+	output, err = mgr.ExecuteTool("env-test_inherit", map[string]string{})
+	if err != nil {
+		t.Fatalf("ExecuteTool failed for env-test_inherit: %v", err)
+	}
+	if !strings.Contains(output, "ENV1=value1") || !strings.Contains(output, "ENV2=value2") {
+		t.Errorf("Expected output to contain ENV1=value1 and ENV2=value2, got: %s", output)
+	}
+	if strings.Contains(output, "ENV3=value3") || strings.Contains(output, "ENV4=value4") {
+		t.Errorf("Expected output to not contain ENV3=value3 or ENV4=value4, got: %s", output)
+	}
+
+	output, err = mgr.ExecuteTool("env-test_override", map[string]string{})
+	if err != nil {
+		t.Fatalf("ExecuteTool failed for env-test_override: %v", err)
+	}
+	if strings.Contains(output, "ENV1=value1") || strings.Contains(output, "ENV2=value2") {
+		t.Errorf("Expected output to not contain ENV1=value1 or ENV2=value2, got: %s", output)
+	}
+	if !strings.Contains(output, "ENV3=value3") || !strings.Contains(output, "ENV4=value4") {
+		t.Errorf("Expected output to contain ENV3=value3 and ENV4=value4, got: %s", output)
+	}
+
+	output, err = mgr.ExecuteTool("no-env", map[string]string{})
+	if err != nil {
+		t.Fatalf("ExecuteTool failed for no-env: %v", err)
+	}
+	if !strings.Contains(output, "ENV1=value1") || !strings.Contains(output, "ENV2=value2") ||
+		!strings.Contains(output, "ENV3=value3") || !strings.Contains(output, "ENV4=value4") {
+		t.Errorf("Expected output to contain all environment variables, got: %s", output)
+	}
 }
