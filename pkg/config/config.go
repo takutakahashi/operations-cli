@@ -33,7 +33,7 @@ type Tool struct {
 	BeforeExec   []string   `yaml:"beforeExec,omitempty"`
 	AfterExec    []string   `yaml:"afterExec,omitempty"`
 	Params       Parameters `yaml:"params"`
-	EnvFromLocal []string   `yaml:"envFromLocal,omitempty"`
+	EnvFrom      EnvFrom    `yaml:"envFrom,omitempty"`
 	Subtools     []Subtool  `yaml:"subtools"`
 	Enabled      *bool      `yaml:"enabled,omitempty"`
 }
@@ -47,7 +47,7 @@ type Subtool struct {
 	BeforeExec   []string   `yaml:"beforeExec,omitempty"`
 	AfterExec    []string   `yaml:"afterExec,omitempty"`
 	Params       Parameters `yaml:"params"`
-	EnvFromLocal []string   `yaml:"envFromLocal,omitempty"`
+	EnvFrom      EnvFrom    `yaml:"envFrom,omitempty"`
 	DangerLevel  string     `yaml:"danger_level"`
 	Subtools     []Subtool  `yaml:"subtools"`
 	Enabled      *bool      `yaml:"enabled,omitempty"`
@@ -69,6 +69,10 @@ type Validation struct {
 
 // Parameters is a map of parameter name to Parameter
 type Parameters map[string]Parameter
+
+type EnvFrom struct {
+	Local []string `yaml:"local,omitempty"`
+}
 
 // ParamRef represents a reference to a parameter defined in the root tool
 type ParamRef struct {
