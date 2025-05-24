@@ -110,43 +110,48 @@ detect_os_arch() {
     esac
 }
 
+check_current_version() {
+    CURRENT_VERSION=""
+    DEST_PATH="$INSTALL_DIR/$BINARY_NAME"
+    
+    if [ -f "$DEST_PATH" ] && [ -x "$DEST_PATH" ]; then
+        if CURRENT_VERSION_OUTPUT=$("$DEST_PATH" --version 2>/dev/null); then
+            # Extract version from output like "operations v0.6.31 (commit: abc123, built: 2023-01-01)"
+            CURRENT_VERSION=$(echo "$CURRENT_VERSION_OUTPUT" | sed -n 's/^operations \(v[0-9][^[:space:]]*\).*/\1/p')
+        fi
+    fi
+}
+
 # Fetch latest release information
 fetch_latest_release() {
     if [ -z "$VERSION" ]; then
         echo "Fetching latest release..."
-        RELEASE_URL="https://api.github.com/repos/$OWNER/$REPO/releases/latest"
+        RELEASE_URL="https://github.com/$OWNER/$REPO/releases/latest"
+        
+        if ! REDIRECT_URL=$(curl -sI "$RELEASE_URL" | grep -i "^location:" | sed 's/^location: *//i' | tr -d '\r'); then
+            echo "Failed to fetch latest release information"
+            exit 1
+        fi
+        
+        # Extract tag from redirect URL like https://github.com/owner/repo/releases/tag/v0.6.31
+        TAG_NAME=$(echo "$REDIRECT_URL" | sed -n 's|.*/releases/tag/\(.*\)|\1|p')
     else
         echo "Fetching release $VERSION..."
         # Ensure version has v prefix
         if ! echo "$VERSION" | grep -q "^v"; then
             VERSION="v$VERSION"
         fi
-        RELEASE_URL="https://api.github.com/repos/$OWNER/$REPO/releases/tags/$VERSION"
+        TAG_NAME="$VERSION"
+        
+        RELEASE_PAGE_URL="https://github.com/$OWNER/$REPO/releases/tag/$TAG_NAME"
+        if ! curl -sI "$RELEASE_PAGE_URL" | grep -q "200 OK"; then
+            echo "Release $TAG_NAME not found"
+            exit 1
+        fi
     fi
 
-    # Use curl to fetch release information
-    if ! RELEASE_INFO=$(curl -s "$RELEASE_URL"); then
-        echo "Failed to fetch release information"
-        exit 1
-    fi
-
-    # Check if release info contains error message
-    if echo "$RELEASE_INFO" | grep -q "Not Found"; then
-        echo "Release not found"
-        exit 1
-    fi
-
-    # Check if jq is installed
-    if ! command -v jq >/dev/null 2>&1; then
-        echo "Error: jq is required but not installed. Please install jq first."
-        exit 1
-    fi
-
-    # Extract version using jq
-    TAG_NAME=$(echo "$RELEASE_INFO" | jq -r .tag_name)
-    if [ "$TAG_NAME" = "null" ] || [ -z "$TAG_NAME" ]; then
-        echo "Failed to extract tag name from release information"
-        echo "Release info: $RELEASE_INFO"
+    if [ -z "$TAG_NAME" ]; then
+        echo "Failed to determine release version"
         exit 1
     fi
 
@@ -155,16 +160,15 @@ fetch_latest_release() {
 
 # Find the correct asset URL for download
 find_asset_url() {
-    # Example asset name: operation-mcp_0.3.0_darwin_aarch64.tar.gz
-    ASSET_PATTERN="operation-mcp_.*_${OS}_${ARCH_NAME}.tar.gz"
+    VERSION_NUM=${TAG_NAME#v}
     
-    # Use jq to find the matching asset URL
-    ASSET_URL=$(echo "$RELEASE_INFO" | jq -r ".assets[] | select(.name | test(\"$ASSET_PATTERN\")) | .browser_download_url" | head -n 1)
+    ASSET_URL="https://github.com/$OWNER/$REPO/releases/download/$TAG_NAME/operation-mcp_${VERSION_NUM}_${OS}_${ARCH_NAME}.tar.gz"
     
-    if [ -z "$ASSET_URL" ]; then
+    HTTP_STATUS=$(curl -sI "$ASSET_URL" | head -n 1)
+    if ! echo "$HTTP_STATUS" | grep -q "302\|200"; then
         echo "No matching asset found for $OS $ARCH_NAME"
-        echo "Available assets:"
-        echo "$RELEASE_INFO" | jq -r ".assets[].name"
+        echo "URL: $ASSET_URL"
+        echo "Status: $HTTP_STATUS"
         exit 1
     fi
 
@@ -263,7 +267,21 @@ main() {
     detect_os_arch
     echo "Detected OS: $OS, Architecture: $ARCH_NAME"
 
+    check_current_version
+    
     fetch_latest_release
+    
+    # Check if we already have the latest version
+    if [ -n "$CURRENT_VERSION" ] && [ "$CURRENT_VERSION" = "$TAG_NAME" ] && [ "$FORCE" = false ]; then
+        echo "Latest version $TAG_NAME is already installed. Use --force to reinstall."
+        exit 0
+    fi
+    
+    if [ -n "$CURRENT_VERSION" ]; then
+        echo "Current version: $CURRENT_VERSION"
+        echo "Target version: $TAG_NAME"
+    fi
+    
     find_asset_url
     download_and_install
 
