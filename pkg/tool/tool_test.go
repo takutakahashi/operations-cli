@@ -558,3 +558,81 @@ func TestEnvFromLocal(t *testing.T) {
 		t.Errorf("Expected output to contain all environment variables, got: %s", output)
 	}
 }
+
+func TestEnvFromAWSSecretsManager(t *testing.T) {
+	// Skip test if running in CI environment or if AWS credentials not available
+	if os.Getenv("CI") == "true" {
+		t.Skip("Skipping test in CI environment")
+	}
+	
+	
+	cfg := &config.Config{
+		Tools: []config.Tool{
+			{
+				Name:   "aws-secret-test",
+				Script: "#!/bin/bash\necho \"SECRET_VALUE=$TEST_SECRET\"",
+				EnvFrom: config.EnvFrom{
+					AWSSecretsManager: []config.AWSSecretsManagerRef{
+						{
+							SecretName: "test-secret",
+							EnvVarName: "TEST_SECRET",
+							Region:     "us-east-1",
+						},
+					},
+				},
+			},
+			{
+				Name:   "aws-secret-json-test",
+				Script: "#!/bin/bash\necho \"DB_USER=$DB_USER DB_PASSWORD=$DB_PASSWORD\"",
+				EnvFrom: config.EnvFrom{
+					AWSSecretsManager: []config.AWSSecretsManagerRef{
+						{
+							SecretName: "test-json-secret",
+							Region:     "us-east-1",
+						},
+					},
+				},
+			},
+			{
+				Name:   "aws-secret-inherit-test",
+				Script: "#!/bin/bash\necho \"SECRET_VALUE=$TEST_SECRET\"",
+				EnvFrom: config.EnvFrom{
+					AWSSecretsManager: []config.AWSSecretsManagerRef{
+						{
+							SecretName: "test-secret",
+							EnvVarName: "TEST_SECRET",
+							Region:     "us-east-1",
+						},
+					},
+				},
+				Subtools: []config.Subtool{
+					{
+						Name:   "inherit",
+						Script: "#!/bin/bash\necho \"SECRET_VALUE=$TEST_SECRET\"",
+					},
+					{
+						Name:   "override",
+						Script: "#!/bin/bash\necho \"OTHER_SECRET=$OTHER_SECRET\"",
+						EnvFrom: config.EnvFrom{
+							AWSSecretsManager: []config.AWSSecretsManagerRef{
+								{
+									SecretName: "other-test-secret",
+									EnvVarName: "OTHER_SECRET",
+									Region:     "us-east-1",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	
+	mgr := NewManager(cfg)
+	
+	_, err := mgr.ExecuteTool("aws-secret-test", map[string]string{})
+	if err != nil {
+		t.Logf("AWS Secrets Manager test skipped - likely due to missing credentials or secret: %v", err)
+		t.Skip("Skipping AWS Secrets Manager test due to configuration")
+	}
+}

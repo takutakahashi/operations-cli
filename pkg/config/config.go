@@ -71,7 +71,14 @@ type Validation struct {
 type Parameters map[string]Parameter
 
 type EnvFrom struct {
-	Local []string `yaml:"local,omitempty"`
+	Local             []string                `yaml:"local,omitempty"`
+	AWSSecretsManager []AWSSecretsManagerRef  `yaml:"awsSecretsManager,omitempty"`
+}
+
+type AWSSecretsManagerRef struct {
+	SecretName string `yaml:"secretName"`
+	Region     string `yaml:"region,omitempty"`
+	EnvVarName string `yaml:"envVarName,omitempty"`
 }
 
 // ParamRef represents a reference to a parameter defined in the root tool
