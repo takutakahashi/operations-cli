@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.31](https://github.com/takutakahashi/operation-mcp/compare/v0.6.30...v0.6.31) - 2025-05-24
+- Add envFromLocal feature to expose specific environment variables to scripts by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/128
+
 ## [v0.6.30](https://github.com/takutakahashi/operation-mcp/compare/v0.6.29...v0.6.30) - 2025-05-23
 - Fix infinite loop when path: . is specified in tools configuration by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/126
 
