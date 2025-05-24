@@ -34,7 +34,6 @@ type Tool struct {
 	AfterExec    []string   `yaml:"afterExec,omitempty"`
 	Params       Parameters `yaml:"params"`
 	EnvFrom      EnvFrom    `yaml:"envFrom,omitempty"`
-	EnvFromLocal []string   `yaml:"envFromLocal,omitempty"` // Deprecated: Use EnvFrom.Local instead
 	Subtools     []Subtool  `yaml:"subtools"`
 	Enabled      *bool      `yaml:"enabled,omitempty"`
 }
@@ -49,7 +48,6 @@ type Subtool struct {
 	AfterExec    []string   `yaml:"afterExec,omitempty"`
 	Params       Parameters `yaml:"params"`
 	EnvFrom      EnvFrom    `yaml:"envFrom,omitempty"`
-	EnvFromLocal []string   `yaml:"envFromLocal,omitempty"` // Deprecated: Use EnvFrom.Local instead
 	DangerLevel  string     `yaml:"danger_level"`
 	Subtools     []Subtool  `yaml:"subtools"`
 	Enabled      *bool      `yaml:"enabled,omitempty"`

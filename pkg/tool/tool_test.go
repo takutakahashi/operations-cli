@@ -487,10 +487,7 @@ func TestEnvFromLocal(t *testing.T) {
 						"TEST_ENV_VAR2",
 					},
 				},
-				EnvFromLocal: []string{
-					"TEST_ENV_VAR1",
-					"TEST_ENV_VAR2",
-				},
+
 				Subtools: []config.Subtool{
 					{
 						Name:   "inherit",
@@ -505,10 +502,7 @@ func TestEnvFromLocal(t *testing.T) {
 								"TEST_ENV_VAR4",
 							},
 						},
-						EnvFromLocal: []string{
-							"TEST_ENV_VAR3",
-							"TEST_ENV_VAR4",
-						},
+
 					},
 				},
 			},

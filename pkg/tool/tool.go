@@ -41,7 +41,6 @@ type CompiledTool struct {
 	AfterExec    []string
 	Params       map[string]config.Parameter
 	EnvFrom      config.EnvFrom
-	EnvFromLocal []string // Deprecated: Use EnvFrom.Local instead
 	DangerLevel  string
 }
 
@@ -54,7 +53,6 @@ type ToolInfo struct {
 	BeforeExec   []string
 	AfterExec    []string
 	EnvFrom      config.EnvFrom
-	EnvFromLocal []string // Deprecated: Use EnvFrom.Local instead
 }
 
 // NewManager creates a new tool manager
@@ -84,19 +82,18 @@ func NewManager(cfg *config.Config) *Manager {
 			AfterExec:    tool.AfterExec,
 			Params:       tool.Params,
 			EnvFrom:      tool.EnvFrom,
-			EnvFromLocal: tool.EnvFromLocal,
 		}
 		mgr.compiledTools[toolName] = root
 
 		// Compile subtools recursively
-		mgr.compileSubtools(toolName, tool.Command, tool.Params, tool.EnvFrom, tool.EnvFromLocal, tool.Subtools)
+		mgr.compileSubtools(toolName, tool.Command, tool.Params, tool.EnvFrom, tool.Subtools)
 	}
 
 	return mgr
 }
 
 // compileSubtools recursively compiles subtools into flat structure
-func (m *Manager) compileSubtools(parentPath string, parentCommand []string, parentParams map[string]config.Parameter, parentEnvFrom config.EnvFrom, parentEnvFromLocal []string, subtools []config.Subtool) {
+func (m *Manager) compileSubtools(parentPath string, parentCommand []string, parentParams map[string]config.Parameter, parentEnvFrom config.EnvFrom, subtools []config.Subtool) {
 	for _, subtool := range subtools {
 		if subtool.Enabled != nil && !*subtool.Enabled {
 			continue
@@ -156,21 +153,14 @@ func (m *Manager) compileSubtools(parentPath string, parentCommand []string, par
 			AfterExec:    subtool.AfterExec,
 			Params:       params,
 			EnvFrom:      mergeEnvFrom(parentEnvFrom, subtool.EnvFrom),
-			EnvFromLocal: mergeEnvFromLocal(parentEnvFromLocal, subtool.EnvFromLocal),
 			DangerLevel:  subtool.DangerLevel,
 		}
 
 		// Recursively compile nested subtools with merged parameters
-		m.compileSubtools(toolPath, command, params, mergeEnvFrom(parentEnvFrom, subtool.EnvFrom), mergeEnvFromLocal(parentEnvFromLocal, subtool.EnvFromLocal), subtool.Subtools)
+		m.compileSubtools(toolPath, command, params, mergeEnvFrom(parentEnvFrom, subtool.EnvFrom), subtool.Subtools)
 	}
 }
 
-func mergeEnvFromLocal(parent, subtool []string) []string {
-	if len(subtool) > 0 {
-		return subtool
-	}
-	return parent
-}
 
 func mergeEnvFrom(parent, subtool config.EnvFrom) config.EnvFrom {
 	if len(subtool.Local) > 0 {
@@ -196,9 +186,6 @@ func (m *Manager) FindTool(toolPath string) ([]string, string, map[string]config
 		return nil, "", nil, "", nil, nil, config.EnvFrom{}, fmt.Errorf("tool not found: %s", toolPath)
 	}
 
-	if len(tool.EnvFrom.Local) == 0 && len(tool.EnvFromLocal) > 0 {
-		tool.EnvFrom.Local = tool.EnvFromLocal
-	}
 
 	return tool.Command, tool.Script, tool.Params, tool.DangerLevel, tool.BeforeExec, tool.AfterExec, tool.EnvFrom, nil
 }
@@ -481,7 +468,6 @@ func (m *Manager) ListTools() map[string]config.Tool {
 			Script:       tool.Script,
 			Params:       tool.Params,
 			EnvFrom:      tool.EnvFrom,
-			EnvFromLocal: tool.EnvFromLocal,
 			Subtools:     subtools,
 		}
 
@@ -522,7 +508,6 @@ func (m *Manager) GetToolInfo(toolPath string) (*ToolInfo, error) {
 		BeforeExec:   beforeExec,
 		AfterExec:    afterExec,
 		EnvFrom:      envFrom,
-		EnvFromLocal: envFrom.Local,
 	}, nil
 }
 

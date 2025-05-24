@@ -194,9 +194,6 @@ tools:
       local:
         - ENV_TEST_VAR1
         - ENV_TEST_VAR2
-    envFromLocal:
-      - ENV_TEST_VAR1
-      - ENV_TEST_VAR2
     subtools:
       - name: inherit
         description: "Subtool that inherits envFromLocal from parent"
@@ -216,5 +213,3 @@ tools:
         envFrom:
           local:
             - ENV_TEST_VAR3
-        envFromLocal:
-          - ENV_TEST_VAR3
