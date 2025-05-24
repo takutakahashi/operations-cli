@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.6.32](https://github.com/takutakahashi/operation-mcp/compare/v0.6.31...v0.6.32) - 2025-05-24
+- Remove GitHub API and jq dependencies from install script by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/130
+- Refactor envFromLocal to envFrom.Local structure by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/132
+
 ## [v0.6.31](https://github.com/takutakahashi/operation-mcp/compare/v0.6.30...v0.6.31) - 2025-05-24
 - Add envFromLocal feature to expose specific environment variables to scripts by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/128
 
