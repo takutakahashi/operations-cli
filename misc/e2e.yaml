@@ -213,3 +213,37 @@ tools:
         envFrom:
           local:
             - ENV_TEST_VAR3
+
+  - name: aws-secret-example
+    description: "Tool demonstrating AWS Secrets Manager integration"
+    script: |
+      #!/bin/bash
+      echo "Database URL: $DATABASE_URL"
+      echo "API Key: $API_KEY"
+    envFrom:
+      awsSecretsManager:
+        - secretName: "my-app/database"
+          envVarName: "DATABASE_URL"
+          region: "us-east-1"
+        - secretName: "my-app/secrets"
+          region: "us-east-1"
+    subtools:
+      - name: inherit
+        description: "Subtool that inherits AWS Secrets Manager config from parent"
+        script: |
+          #!/bin/bash
+          echo "Using inherited secrets:"
+          echo "Database URL: $DATABASE_URL"
+          echo "API Key: $API_KEY"
+      
+      - name: override
+        description: "Subtool that overrides parent's AWS Secrets Manager config"
+        script: |
+          #!/bin/bash
+          echo "Using overridden secrets:"
+          echo "Custom Secret: $CUSTOM_SECRET"
+        envFrom:
+          awsSecretsManager:
+            - secretName: "my-app/custom"
+              envVarName: "CUSTOM_SECRET"
+              region: "us-east-1"

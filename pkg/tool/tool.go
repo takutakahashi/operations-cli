@@ -2,12 +2,18 @@ package tool
 
 import (
 	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 	"text/template"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/takutakahashi/operation-mcp/pkg/config"
 	"github.com/takutakahashi/operation-mcp/pkg/danger"
 	"github.com/takutakahashi/operation-mcp/pkg/executor"
@@ -163,10 +169,21 @@ func (m *Manager) compileSubtools(parentPath string, parentCommand []string, par
 
 
 func mergeEnvFrom(parent, subtool config.EnvFrom) config.EnvFrom {
+	result := config.EnvFrom{}
+	
 	if len(subtool.Local) > 0 {
-		return subtool
+		result.Local = subtool.Local
+	} else {
+		result.Local = parent.Local
 	}
-	return parent
+	
+	if len(subtool.AWSSecretsManager) > 0 {
+		result.AWSSecretsManager = subtool.AWSSecretsManager
+	} else {
+		result.AWSSecretsManager = parent.AWSSecretsManager
+	}
+	
+	return result
 }
 
 // WithExecutor sets the executor for the tool manager
@@ -278,6 +295,61 @@ func (m *Manager) getParentTool(toolPath string) *CompiledTool {
 }
 
 // executeScript executes a script with the given parameters
+func fetchAWSSecrets(secretRefs []config.AWSSecretsManagerRef) ([]string, error) {
+	if len(secretRefs) == 0 {
+		return nil, nil
+	}
+	
+	var envVars []string
+	
+	for _, secretRef := range secretRefs {
+		// Create AWS config with optional region
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		
+		cfg, err := awsconfig.LoadDefaultConfig(ctx, func(o *awsconfig.LoadOptions) error {
+			if secretRef.Region != "" {
+				o.Region = secretRef.Region
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to load AWS configuration: %w", err)
+		}
+		
+		// Create Secrets Manager client
+		client := secretsmanager.NewFromConfig(cfg)
+		
+		result, err := client.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
+			SecretId: aws.String(secretRef.SecretName),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get secret %s: %w", secretRef.SecretName, err)
+		}
+		
+		if result.SecretString == nil {
+			continue // Skip if no string value
+		}
+		
+		secretValue := *result.SecretString
+		
+		if secretRef.EnvVarName != "" {
+			envVars = append(envVars, secretRef.EnvVarName+"="+secretValue)
+		} else {
+			var secretMap map[string]interface{}
+			if err := json.Unmarshal([]byte(secretValue), &secretMap); err == nil {
+				for key, value := range secretMap {
+					if str, ok := value.(string); ok {
+						envVars = append(envVars, key+"="+str)
+					}
+				}
+			}
+		}
+	}
+	
+	return envVars, nil
+}
+
 func executeScript(script string, paramValues map[string]string, envFrom config.EnvFrom) (string, error) {
 	// Replace template parameters in script
 	if strings.Contains(script, "{{") {
@@ -323,12 +395,21 @@ func executeScript(script string, paramValues map[string]string, envFrom config.
 	cmd := exec.Command("/bin/bash", tmpFile.Name())
 	cmd.Stdin = os.Stdin
 	
-	if len(envFrom.Local) > 0 {
+	if len(envFrom.Local) > 0 || len(envFrom.AWSSecretsManager) > 0 {
 		cmd.Env = []string{}
+		
 		for _, envVar := range envFrom.Local {
 			if value := os.Getenv(envVar); value != "" {
 				cmd.Env = append(cmd.Env, envVar+"="+value)
 			}
+		}
+		
+		awsEnvVars, err := fetchAWSSecrets(envFrom.AWSSecretsManager)
+		if err != nil {
+			return "", fmt.Errorf("failed to fetch AWS secrets: %w", err)
+		}
+		if awsEnvVars != nil {
+			cmd.Env = append(cmd.Env, awsEnvVars...)
 		}
 	}
 
