@@ -128,10 +128,6 @@ func registerTool(s *server.MCPServer, toolInfo tool.Info, parentPath string, l 
 		return executeHandler(ctx, request, l)
 	})
 
-	// Register subtools
-	for _, subtool := range toolInfo.Subtools {
-		registerTool(s, subtool, toolPath, l)
-	}
 }
 
 func executeHandler(ctx context.Context, request mcp.CallToolRequest, l logger.Logger) (*mcp.CallToolResult, error) {

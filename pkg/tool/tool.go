@@ -99,7 +99,7 @@ func NewManager(cfg *config.Config) *Manager {
 }
 
 // compileSubtools recursively compiles subtools into flat structure
-func (m *Manager) compileSubtools(parentPath string, parentCommand []string, parentParams map[string]config.Parameter, parentEnvFrom config.EnvFrom, subtools []config.Subtool) {
+func (m *Manager) compileSubtools(parentPath string, parentCommand []string, parentParams map[string]config.Parameter, parentEnvFrom config.EnvFrom, subtools []config.Tool) {
 	for _, subtool := range subtools {
 		if subtool.Enabled != nil && !*subtool.Enabled {
 			continue
@@ -112,7 +112,11 @@ func (m *Manager) compileSubtools(parentPath string, parentCommand []string, par
 
 		// Create base command
 		var command []string
-		if len(subtool.Args) > 0 {
+		if len(subtool.Command) > 0 {
+			// If subtool has its own command, use it
+			command = make([]string, len(subtool.Command))
+			copy(command, subtool.Command)
+		} else if len(subtool.Args) > 0 {
 			// If this is a leaf subtool (no nested subtools), combine parent command with args
 			if len(subtool.Subtools) == 0 {
 				command = make([]string, len(parentCommand))
@@ -124,7 +128,7 @@ func (m *Manager) compileSubtools(parentPath string, parentCommand []string, par
 				copy(command, parentCommand)
 			}
 		} else {
-			// If subtool has no args, just use parent command
+			// If subtool has no args or command, just use parent command
 			command = make([]string, len(parentCommand))
 			copy(command, parentCommand)
 		}
@@ -137,9 +141,9 @@ func (m *Manager) compileSubtools(parentPath string, parentCommand []string, par
 			params[name] = param
 		}
 
-		// Add implicitly referenced parent parameters (used in Args or Script)
-		if len(subtool.Args) > 0 || subtool.Script != "" {
-			content := strings.Join(subtool.Args, " ") + subtool.Script
+		// Add implicitly referenced parent parameters (used in Args, Command or Script)
+		if len(subtool.Args) > 0 || len(subtool.Command) > 0 || subtool.Script != "" {
+			content := strings.Join(subtool.Args, " ") + strings.Join(subtool.Command, " ") + subtool.Script
 			for name, param := range parentParams {
 				if strings.Contains(content, "{{."+name+"}}") {
 					if _, exists := params[name]; !exists {
@@ -535,7 +539,7 @@ func (m *Manager) ListTools() map[string]config.Tool {
 		name := strings.ReplaceAll(parts[len(parts)-1], " ", "_")
 
 		// Find the original tool in config to get its subtools
-		var subtools []config.Subtool
+		var subtools []config.Tool
 		for _, configTool := range m.config.Tools {
 			if configTool.Name == name {
 				subtools = configTool.Subtools

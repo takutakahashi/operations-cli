@@ -29,27 +29,14 @@ type Tool struct {
 	Name         string     `yaml:"name"`
 	Description  string     `yaml:"description,omitempty"`
 	Command      []string   `yaml:"command,omitempty"`
-	Script       string     `yaml:"script,omitempty"`
-	BeforeExec   []string   `yaml:"beforeExec,omitempty"`
-	AfterExec    []string   `yaml:"afterExec,omitempty"`
-	Params       Parameters `yaml:"params"`
-	EnvFrom      EnvFrom    `yaml:"envFrom,omitempty"`
-	Subtools     []Subtool  `yaml:"subtools"`
-	Enabled      *bool      `yaml:"enabled,omitempty"`
-}
-
-// Subtool represents a subtool configuration
-type Subtool struct {
-	Name         string     `yaml:"name"`
-	Description  string     `yaml:"description,omitempty"`
 	Args         []string   `yaml:"args,omitempty"`
 	Script       string     `yaml:"script,omitempty"`
 	BeforeExec   []string   `yaml:"beforeExec,omitempty"`
 	AfterExec    []string   `yaml:"afterExec,omitempty"`
 	Params       Parameters `yaml:"params"`
 	EnvFrom      EnvFrom    `yaml:"envFrom,omitempty"`
-	DangerLevel  string     `yaml:"danger_level"`
-	Subtools     []Subtool  `yaml:"subtools"`
+	DangerLevel  string     `yaml:"danger_level,omitempty"`
+	Subtools     []Tool     `yaml:"subtools"`
 	Enabled      *bool      `yaml:"enabled,omitempty"`
 }
 
@@ -287,11 +274,6 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("tool %s must have command, script, or at least one subtool", tool.Name)
 		}
 
-		// Command と Script は排他的
-		if len(tool.Command) > 0 && tool.Script != "" {
-			return fmt.Errorf("tool %s has both command and script, only one should be specified", tool.Name)
-		}
-
 		// Validate tool parameters
 		for name, param := range tool.Params {
 			if name == "" {
@@ -304,7 +286,7 @@ func (c *Config) Validate() error {
 
 		// Validate subtools
 		for _, subtool := range tool.Subtools {
-			if err := validateSubtool(subtool, tool.Name); err != nil {
+			if err := validateTool(subtool, tool.Name); err != nil {
 				return err
 			}
 		}
@@ -313,32 +295,62 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// validateSubtool validates a subtool configuration
-func validateSubtool(subtool Subtool, parentName string) error {
-	if subtool.Name == "" {
-		return fmt.Errorf("subtool of %s missing name", parentName)
+// validateTool validates a tool configuration (used for both root tools and subtools)
+func validateTool(tool Tool, parentName string) error {
+	if tool.Name == "" {
+		toolType := "tool"
+		if parentName != "" {
+			toolType = "subtool"
+		}
+		return fmt.Errorf("%s missing name", toolType)
 	}
 
-	fullName := parentName + "_" + subtool.Name
-
-	// Args と Script は排他的
-	if len(subtool.Args) > 0 && subtool.Script != "" {
-		return fmt.Errorf("subtool %s has both args and script, only one should be specified", fullName)
+	fullName := tool.Name
+	if parentName != "" {
+		fullName = parentName + "_" + tool.Name
 	}
 
-	// Validate subtool parameters
-	for name, param := range subtool.Params {
+	// For subtools: Args, Command and Script are mutually exclusive
+	// For root tools: Command and Script are mutually exclusive (Args not applicable)
+	if parentName != "" {
+		// This is a subtool
+		exclusiveCount := 0
+		if len(tool.Args) > 0 {
+			exclusiveCount++
+		}
+		if len(tool.Command) > 0 {
+			exclusiveCount++
+		}
+		if tool.Script != "" {
+			exclusiveCount++
+		}
+		if exclusiveCount > 1 {
+			return fmt.Errorf("subtool %s has multiple execution methods (args, command, script), only one should be specified", fullName)
+		}
+	} else {
+		// This is a root tool
+		if len(tool.Command) > 0 && tool.Script != "" {
+			return fmt.Errorf("tool %s has both command and script, only one should be specified", fullName)
+		}
+		// Args should not be used for root tools
+		if len(tool.Args) > 0 {
+			return fmt.Errorf("tool %s has args field, which should only be used for subtools", fullName)
+		}
+	}
+
+	// Validate tool parameters
+	for name, param := range tool.Params {
 		if name == "" {
-			return fmt.Errorf("subtool %s has parameter with empty name", fullName)
+			return fmt.Errorf("tool %s has parameter with empty name", fullName)
 		}
 		if param.Type == "" {
-			return fmt.Errorf("parameter %s in subtool %s missing type", name, fullName)
+			return fmt.Errorf("parameter %s in tool %s missing type", name, fullName)
 		}
 	}
 
 	// Validate nested subtools
-	for _, nestedSubtool := range subtool.Subtools {
-		if err := validateSubtool(nestedSubtool, fullName); err != nil {
+	for _, subtool := range tool.Subtools {
+		if err := validateTool(subtool, fullName); err != nil {
 			return err
 		}
 	}

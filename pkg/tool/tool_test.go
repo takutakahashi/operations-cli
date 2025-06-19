@@ -22,7 +22,7 @@ func TestFindTool(t *testing.T) {
 						Required:    true,
 					},
 				},
-				Subtools: []config.Subtool{
+				Subtools: []config.Tool{
 					{
 						Name: "get",
 						Args: []string{"get", "pod", "-o", "json", "-n", "{{.namespace}}"},
@@ -69,7 +69,7 @@ func TestFindTool(t *testing.T) {
 						Required:    true,
 					},
 				},
-				Subtools: []config.Subtool{
+				Subtools: []config.Tool{
 					{
 						Name:   "script-subtool",
 						Script: "#!/bin/bash\necho 'Parameter value: {{.param1}}'",
@@ -86,7 +86,7 @@ func TestFindTool(t *testing.T) {
 						Required:    false,
 					},
 				},
-				Subtools: []config.Subtool{
+				Subtools: []config.Tool{
 					{
 						Name: "child",
 						Args: []string{"child", "{{.parent-param}}"},
@@ -97,7 +97,7 @@ func TestFindTool(t *testing.T) {
 								Required:    false,
 							},
 						},
-						Subtools: []config.Subtool{
+						Subtools: []config.Tool{
 							{
 								Name: "grandchild",
 								Args: []string{"grandchild", "{{.parent-param}}", "{{.child-param}}", "{{.grandchild-param}}"},
@@ -340,7 +340,7 @@ func TestExecuteRawTool(t *testing.T) {
 						Required:    true,
 					},
 				},
-				Subtools: []config.Subtool{
+				Subtools: []config.Tool{
 					{
 						Name: "hello",
 						Args: []string{"Hello, {{.message}}!"},
@@ -418,7 +418,7 @@ func TestBeforeAfterExec(t *testing.T) {
 				Name:       "parent",
 				BeforeExec: []string{"echo 'parent before'"},
 				AfterExec:  []string{"echo 'parent after'"},
-				Subtools: []config.Subtool{
+				Subtools: []config.Tool{
 					{
 						Name:       "child",
 						BeforeExec: []string{"echo 'child before'"},
@@ -488,7 +488,7 @@ func TestEnvFromLocal(t *testing.T) {
 					},
 				},
 
-				Subtools: []config.Subtool{
+				Subtools: []config.Tool{
 					{
 						Name:   "inherit",
 						Script: "#!/bin/bash\necho \"ENV1=$TEST_ENV_VAR1 ENV2=$TEST_ENV_VAR2 ENV3=$TEST_ENV_VAR3 ENV4=$TEST_ENV_VAR4\"",
@@ -605,7 +605,7 @@ func TestEnvFromAWSSecretsManager(t *testing.T) {
 						},
 					},
 				},
-				Subtools: []config.Subtool{
+				Subtools: []config.Tool{
 					{
 						Name:   "inherit",
 						Script: "#!/bin/bash\necho \"SECRET_VALUE=$TEST_SECRET\"",

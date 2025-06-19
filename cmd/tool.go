@@ -38,7 +38,7 @@ func createToolCommand(tool config.Tool) *cobra.Command {
 }
 
 // createSubtoolCommand creates a command for a subtool
-func createSubtoolCommand(parentName string, subtool config.Subtool) *cobra.Command {
+func createSubtoolCommand(parentName string, subtool config.Tool) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   subtool.Name,
 		Short: fmt.Sprintf("Execute %s.%s operation", parentName, subtool.Name),
