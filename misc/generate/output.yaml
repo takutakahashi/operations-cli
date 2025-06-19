@@ -102,7 +102,6 @@ tools:
                 type: string
                 required: false
                 validate: []
-          danger_level: ""
           subtools: []
         - name: with-params
           script: |
@@ -122,5 +121,4 @@ tools:
                 type: string
                 required: true
                 validate: []
-          danger_level: ""
           subtools: []
