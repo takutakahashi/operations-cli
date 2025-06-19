@@ -346,8 +346,8 @@ func buildTool(dir string, processedDirs map[string]bool) (*Tool, error) {
 	return tool, nil
 }
 
-// buildSubtool はサブツールディレクトリからSubtool構造体を構築します。
-func buildSubtool(dir string, processedDirs map[string]bool) (*Subtool, error) {
+// buildSubtool はサブツールディレクトリからTool構造体を構築します。
+func buildSubtool(dir string, processedDirs map[string]bool) (*Tool, error) {
 	fmt.Printf("\n[DEBUG] buildSubtool: %s\n", dir)
 	meta, err := readMetadata(filepath.Join(dir, "metadata.yaml"))
 	if err != nil {
@@ -366,7 +366,7 @@ func buildSubtool(dir string, processedDirs map[string]bool) (*Subtool, error) {
 	processedDirs[absDir] = true
 	fmt.Printf("\n[DEBUG] Marking directory as processed: %s\n", absDir)
 	
-	sub := &Subtool{}
+	sub := &Tool{}
 	sub.Name = filepath.Base(dir)
 	if description, ok := meta["description"].(string); ok {
 		sub.Description = description
@@ -602,7 +602,7 @@ func exportTool(tool *Tool, dir string) error {
 	return writeMetadata(filepath.Join(dir, "metadata.yaml"), meta)
 }
 
-func exportSubtool(sub *Subtool, dir string) error {
+func exportSubtool(sub *Tool, dir string) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}

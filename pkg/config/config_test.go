@@ -140,7 +140,7 @@ func TestConfigValidate(t *testing.T) {
 						Required:    true,
 					},
 				},
-				Subtools: []Subtool{
+				Subtools: []Tool{
 					{
 						Name: "get pod",
 						Args: []string{"get", "pod", "-o", "json", "-n", "{{.namespace}}"},
@@ -166,7 +166,7 @@ func TestConfigValidate(t *testing.T) {
 						Required:    false,
 					},
 				},
-				Subtools: []Subtool{
+				Subtools: []Tool{
 					{
 						Name: "subtool1",
 						Args: []string{"arg1", "arg2"},
