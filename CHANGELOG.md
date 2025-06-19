@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.6.34](https://github.com/takutakahashi/operation-mcp/compare/v0.6.33...v0.6.34) - 2025-06-19
+- refactor: Unify Tool and Subtool structures by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/137
+- fix: Remove debug output and update expected test output by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/138
+
 ## [v0.6.33](https://github.com/takutakahashi/operation-mcp/compare/v0.6.32...v0.6.33) - 2025-05-24
 - feat: Add AWS Secrets Manager support to envFrom by @devin-ai-integration in https://github.com/takutakahashi/operation-mcp/pull/133
 
