@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.7.1](https://github.com/takutakahashi/operations-cli/compare/v0.7.0...v0.7.1) - 2026-03-01
+- fix: supergateway の transport を SSE から streamable-http に変更 by @takutakahashi in https://github.com/takutakahashi/operations-cli/pull/141
+
 ## [v0.6.34](https://github.com/takutakahashi/operation-mcp/compare/v0.6.33...v0.6.34) - 2025-06-19
 - refactor: Unify Tool and Subtool structures by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/137
 - fix: Remove debug output and update expected test output by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/138
