@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.35](https://github.com/takutakahashi/operations-cli/compare/v0.6.34...v0.6.35) - 2026-03-01
+- feat: supergateway を追加して remote MCP に対応 by @takutakahashi in https://github.com/takutakahashi/operations-cli/pull/139
+
 ## [v0.6.34](https://github.com/takutakahashi/operation-mcp/compare/v0.6.33...v0.6.34) - 2025-06-19
 - refactor: Unify Tool and Subtool structures by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/137
 - fix: Remove debug output and update expected test output by @takutakahashi in https://github.com/takutakahashi/operation-mcp/pull/138
