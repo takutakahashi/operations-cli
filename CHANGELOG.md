@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.7.3](https://github.com/takutakahashi/operations-cli/compare/v0.7.2...v0.7.3) - 2026-03-01
+- feat: Dockerfile に curl を追加 by @takutakahashi in https://github.com/takutakahashi/operations-cli/pull/145
+
 ## [v0.7.2](https://github.com/takutakahashi/operations-cli/compare/v0.7.1...v0.7.2) - 2026-03-01
 - fix: supergateway の outputTransport を streamableHttp に修正 by @takutakahashi in https://github.com/takutakahashi/operations-cli/pull/143
 
