@@ -18,6 +18,9 @@ WORKDIR /app
 # supergateway をグローバルインストール
 RUN npm install -g supergateway
 
+# curl をインストール
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 # ビルドステージからバイナリをコピー
 COPY --from=builder /app/operations /usr/local/bin/operations
 
