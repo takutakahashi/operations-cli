@@ -10,12 +10,22 @@ COPY . .
 RUN go build -o operations .
 
 # 実行ステージ
-FROM gcr.io/distroless/base-debian12:nonroot
+# Node.js ベースイメージを使用して supergateway (remote MCP) をサポート
+FROM node:20-slim
 
 WORKDIR /app
 
-# ビルドステージからバイナリをコピー
-COPY --from=builder /app/operations /app/operations
-USER nonroot
+# supergateway をグローバルインストール
+RUN npm install -g supergateway
 
-ENTRYPOINT ["/app/operations"]
+# ビルドステージからバイナリをコピー
+COPY --from=builder /app/operations /usr/local/bin/operations
+
+# エントリーポイントスクリプトをコピー
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# remote MCP 用のポートを公開 (MCP_MODE=remote 時に使用)
+EXPOSE 8000
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
