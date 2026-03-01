@@ -9,6 +9,7 @@ if [ "${MCP_MODE}" = "remote" ]; then
     exec supergateway \
         --stdio "operations $*" \
         --port "${PORT}" \
+        --outputTransport streamable-http \
         ${SUPERGATEWAY_ARGS}
 else
     exec operations "$@"
