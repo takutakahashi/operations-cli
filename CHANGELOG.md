@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.7.2](https://github.com/takutakahashi/operations-cli/compare/v0.7.1...v0.7.2) - 2026-03-01
+- fix: supergateway の outputTransport を streamableHttp に修正 by @takutakahashi in https://github.com/takutakahashi/operations-cli/pull/143
+
 ## [v0.7.1](https://github.com/takutakahashi/operations-cli/compare/v0.7.0...v0.7.1) - 2026-03-01
 - fix: supergateway の transport を SSE から streamable-http に変更 by @takutakahashi in https://github.com/takutakahashi/operations-cli/pull/141
 
